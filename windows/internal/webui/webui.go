@@ -138,9 +138,64 @@ func writeJSON(w http.ResponseWriter, v any) {
 
 // OpenBrowser открывает URL в браузере по умолчанию.
 func OpenBrowser(url string) {
-	// VPN_CLIENT_NO_BROWSER — не открывать браузер (тесты/серверный запуск).
-	if os.Getenv("VPN_CLIENT_NO_BROWSER") != "" {
+	if noBrowser() {
 		return
 	}
 	_ = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+}
+
+// OpenAppWindow открывает URL как отдельное окно-приложение (Edge/Chrome
+// в режиме --app): без адресной строки, вкладок и меню — выглядит как нативное
+// приложение, а внутри — наш современный интерфейс. Запасной вариант — браузер.
+func OpenAppWindow(url string) {
+	if noBrowser() {
+		return
+	}
+	exe := findChromium()
+	if exe == "" {
+		OpenBrowser(url)
+		return
+	}
+	// Отдельный профиль: окно-приложение изолировано от обычного браузера.
+	profileDir := filepath.Join(os.Getenv("LocalAppData"), "VPN-Client", "webview")
+	_ = os.MkdirAll(profileDir, 0o700)
+	_ = exec.Command(exe,
+		"--app="+url,
+		"--user-data-dir="+profileDir,
+		"--window-size=560,680",
+		"--window-position=140,80",
+		"--no-first-run",
+		"--no-default-browser-check",
+	).Start()
+}
+
+func noBrowser() bool {
+	// VPN_CLIENT_NO_BROWSER — не открывать окно (тесты/серверный запуск).
+	return os.Getenv("VPN_CLIENT_NO_BROWSER") != ""
+}
+
+func findChromium() string {
+	var candidates []string
+	pf := os.Getenv("ProgramFiles")
+	pf86 := os.Getenv("ProgramFiles(x86)")
+	local := os.Getenv("LocalAppData")
+	add := func(root string, parts ...string) {
+		if root == "" {
+			return
+		}
+		candidates = append(candidates, filepath.Join(append([]string{root}, parts...)...))
+	}
+	// Edge (есть почти на всех Windows 10/11)
+	add(pf86, "Microsoft", "Edge", "Application", "msedge.exe")
+	add(pf, "Microsoft", "Edge", "Application", "msedge.exe")
+	// Chrome
+	add(pf, "Google", "Chrome", "Application", "chrome.exe")
+	add(pf86, "Google", "Chrome", "Application", "chrome.exe")
+	add(local, "Google", "Chrome", "Application", "chrome.exe")
+	for _, c := range candidates {
+		if _, err := os.Stat(c); err == nil {
+			return c
+		}
+	}
+	return ""
 }

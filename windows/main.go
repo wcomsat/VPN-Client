@@ -32,21 +32,21 @@ import (
 	"github.com/wcomsat/vpn-client/internal/webui"
 )
 
-const version = "0.5.0"
+const version = "0.6.0"
 
 func main() {
-	// Запуск без аргументов (двойным кликом) — нативное окно.
+	// Запуск без аргументов (двойным кликом) — окно-приложение + трей.
 	if len(os.Args) < 2 {
-		cmdApp()
+		cmdClient()
 		return
 	}
 	switch os.Args[1] {
 	case "version", "-v", "--version":
 		fmt.Println("vpn-client", version)
-	case "window", "app":
+	case "window":
 		cmdApp()
 	case "tray":
-		cmdTray()
+		cmdClient()
 	case "ui":
 		cmdUI(os.Args[2:])
 	case "parse":
@@ -138,18 +138,21 @@ func cmdUI(args []string) {
 	fmt.Println("\nвыход")
 }
 
-// cmdTray — клиентский запуск: иконка в трее + веб-интерфейс в браузере.
-func cmdTray() {
+// cmdClient — клиентский запуск: современное окно-приложение + значок в трее.
+func cmdClient() {
 	mgr := app.New()
+	// Убрать «зависший» системный прокси от прошлого запуска, если он есть.
+	_ = proxy.ClearStale(fmt.Sprintf("127.0.0.1:%d", app.HTTPPort))
 	srv := webui.New(mgr)
 	url := "http://" + uiAddr + "/"
 	go func() {
 		if err := srv.Start(uiAddr); err != nil {
-			fmt.Fprintf(os.Stderr, "веб-интерфейс остановлен: %v\n", err)
+			fmt.Fprintf(os.Stderr, "интерфейс остановлен: %v\n", err)
 		}
 	}()
-	webui.OpenBrowser(url)
-	runTray(mgr, func() { webui.OpenBrowser(url) })
+	open := func() { webui.OpenAppWindow(url) }
+	open()
+	runTray(mgr, open)
 }
 
 func cmdParse(args []string) {
