@@ -45,8 +45,6 @@ func (s *Server) Start(addr string) error {
 	mux.HandleFunc("/connect", s.handleConnect)
 	mux.HandleFunc("/disconnect", s.handleDisconnect)
 
-	url := "http://" + addr + "/"
-	openBrowser(url)
 	return http.ListenAndServe(addr, mux)
 }
 
@@ -138,7 +136,8 @@ func writeJSON(w http.ResponseWriter, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
-func openBrowser(url string) {
+// OpenBrowser открывает URL в браузере по умолчанию.
+func OpenBrowser(url string) {
 	// VPN_CLIENT_NO_BROWSER — не открывать браузер (тесты/серверный запуск).
 	if os.Getenv("VPN_CLIENT_NO_BROWSER") != "" {
 		return

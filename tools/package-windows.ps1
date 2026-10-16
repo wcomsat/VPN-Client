@@ -42,6 +42,10 @@ if (Test-Path $Tun2socksExe) {
     Write-Warning "нет $Tun2socksExe (TUN-режим не будет работать)"
 }
 
+Copy-Item (Join-Path $repo "windows/assets/icon.ico") (Join-Path $stage "vpn-client.ico")
+Copy-Item (Join-Path $repo "tools/VPN.vbs") (Join-Path $stage "VPN.vbs")
+Copy-Item (Join-Path $repo "tools/install-windows.ps1") (Join-Path $stage "install-windows.ps1")
+
 $licDir = Join-Path $stage "THIRD-PARTY-LICENSES"
 New-Item -ItemType Directory -Path $licDir | Out-Null
 Copy-Item (Join-Path $repo "NOTICE") $licDir

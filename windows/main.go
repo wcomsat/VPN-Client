@@ -32,12 +32,12 @@ import (
 	"github.com/wcomsat/vpn-client/internal/webui"
 )
 
-const version = "0.3.3"
+const version = "0.4.0"
 
 func main() {
-	// Запуск без аргументов (двойным кликом) — открываем интерфейс.
+	// Запуск без аргументов (двойным кликом) — трей + интерфейс.
 	if len(os.Args) < 2 {
-		cmdUI(nil)
+		cmdTray()
 		return
 	}
 	switch os.Args[1] {
@@ -101,23 +101,41 @@ func readSource(src string) ([]byte, error) {
 	return b, nil
 }
 
+const uiAddr = "127.0.0.1:8787"
+
+// cmdUI запускает только веб-интерфейс (без трея).
 func cmdUI(args []string) {
 	fs := flag.NewFlagSet("ui", flag.ExitOnError)
-	addr := fs.String("addr", "127.0.0.1:8787", "адрес локального интерфейса")
+	addr := fs.String("addr", uiAddr, "адрес локального интерфейса")
 	_ = fs.Parse(args)
 
 	mgr := app.New()
 	srv := webui.New(mgr)
+	url := "http://" + *addr + "/"
 	go func() {
 		if err := srv.Start(*addr); err != nil {
 			fmt.Fprintf(os.Stderr, "веб-интерфейс остановлен: %v\n", err)
 		}
 	}()
-	fmt.Printf("Интерфейс открыт в браузере: http://%s/\n", *addr)
-	fmt.Println("Ctrl+C — закрыть.")
+	webui.OpenBrowser(url)
+	fmt.Printf("Интерфейс: %s\nCtrl+C — закрыть.\n", url)
 	waitSignal()
 	_ = mgr.Disconnect()
 	fmt.Println("\nвыход")
+}
+
+// cmdTray — клиентский запуск: иконка в трее + веб-интерфейс в браузере.
+func cmdTray() {
+	mgr := app.New()
+	srv := webui.New(mgr)
+	url := "http://" + uiAddr + "/"
+	go func() {
+		if err := srv.Start(uiAddr); err != nil {
+			fmt.Fprintf(os.Stderr, "веб-интерфейс остановлен: %v\n", err)
+		}
+	}()
+	webui.OpenBrowser(url)
+	runTray(mgr, func() { webui.OpenBrowser(url) })
 }
 
 func cmdParse(args []string) {

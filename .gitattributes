@@ -17,9 +17,11 @@ gradlew   text eol=lf
 
 # Бинарные
 *.png binary
+*.ico binary
 *.jar binary
 *.aar binary
 *.apk binary
 *.exe binary
 *.dll binary
+*.syso binary
 *.zip binary
