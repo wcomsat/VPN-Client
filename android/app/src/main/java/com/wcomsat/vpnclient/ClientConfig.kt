@@ -9,7 +9,7 @@ import org.json.JSONObject
  */
 object ClientConfig {
 
-    fun build(ch: Channel, socksPort: Int = 10808): String {
+    fun build(ch: Channel, socksPort: Int = 10808, httpPort: Int = 10809): String {
         val user = JSONObject()
             .put("id", ch.uuid)
             .put("encryption", "none")
@@ -36,16 +36,22 @@ object ClientConfig {
             )
         }
 
-        val sniffing = JSONObject()
+        fun sniffing(): JSONObject = JSONObject()
             .put("enabled", true)
             .put("destOverride", JSONArray(listOf("http", "tls", "quic")))
 
-        val inbound = JSONObject()
+        val socksInbound = JSONObject()
             .put("listen", "127.0.0.1")
             .put("port", socksPort)
             .put("protocol", "socks")
             .put("settings", JSONObject().put("udp", true))
-            .put("sniffing", sniffing)
+            .put("sniffing", sniffing())
+
+        val httpInbound = JSONObject()
+            .put("listen", "127.0.0.1")
+            .put("port", httpPort)
+            .put("protocol", "http")
+            .put("sniffing", sniffing())
 
         val vnext = JSONObject()
             .put("address", ch.address)
@@ -63,7 +69,7 @@ object ClientConfig {
 
         val root = JSONObject()
             .put("log", JSONObject().put("loglevel", "warning"))
-            .put("inbounds", JSONArray(listOf(inbound)))
+            .put("inbounds", JSONArray(listOf(socksInbound, httpInbound)))
             .put("outbounds", outbounds)
 
         return root.toString(2)

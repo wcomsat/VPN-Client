@@ -133,9 +133,12 @@ func ParseSubscription(text string) ([]*Channel, error) {
 	return out, nil
 }
 
-// CoreConfig собирает конфиг Xray-core (SOCKS-инбаунд + VLESS-аутбаунд) для
-// выбранного канала. Совпадает с shared/fixtures/expected/*.json.
-func (c *Channel) CoreConfig(socksPort int) ([]byte, error) {
+// CoreConfig собирает конфиг Xray-core для выбранного канала.
+//
+// Инбаунды: SOCKS (для tun2socks на Android и Windows-TUN) и HTTP (для
+// системного прокси Windows). Оба локальные. Совпадает с
+// shared/fixtures/expected/*.json.
+func (c *Channel) CoreConfig(socksPort, httpPort int) ([]byte, error) {
 	user := map[string]any{"id": c.UUID, "encryption": "none"}
 	if c.Flow != "" {
 		user["flow"] = c.Flow
@@ -161,6 +164,10 @@ func (c *Channel) CoreConfig(socksPort int) ([]byte, error) {
 		}
 	}
 
+	sniffing := map[string]any{
+		"enabled":      true,
+		"destOverride": []string{"http", "tls", "quic"},
+	}
 	cfg := map[string]any{
 		"log": map[string]any{"loglevel": "warning"},
 		"inbounds": []any{
@@ -169,10 +176,13 @@ func (c *Channel) CoreConfig(socksPort int) ([]byte, error) {
 				"port":     socksPort,
 				"protocol": "socks",
 				"settings": map[string]any{"udp": true},
-				"sniffing": map[string]any{
-					"enabled":      true,
-					"destOverride": []string{"http", "tls", "quic"},
-				},
+				"sniffing": sniffing,
+			},
+			map[string]any{
+				"listen":   "127.0.0.1",
+				"port":     httpPort,
+				"protocol": "http",
+				"sniffing": sniffing,
 			},
 		},
 		"outbounds": []any{

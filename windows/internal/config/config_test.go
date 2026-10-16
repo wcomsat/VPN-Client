@@ -63,7 +63,7 @@ func TestCoreConfigMatchesFixtures(t *testing.T) {
 		{chans[1], []string{"expected", "vision.json"}},
 	}
 	for _, tc := range cases {
-		got, err := tc.channel.CoreConfig(10808)
+		got, err := tc.channel.CoreConfig(10808, 10809)
 		if err != nil {
 			t.Fatalf("CoreConfig(%s): %v", tc.channel.Transport, err)
 		}
