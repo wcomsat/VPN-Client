@@ -101,6 +101,8 @@ textarea:focus { border-color: var(--blue); }
 .seg-btn:disabled { opacity: .4; cursor: default; }
 .seg-btn.locked::after { content: " 🔒"; }
 
+.hint { color: var(--muted); font-size: 11.5px; margin-top: 7px; line-height: 1.35; min-height: 15px; }
+
 .link {
   align-self: center; margin-top: auto; padding-top: 16px;
   background: none; border: 0; color: var(--muted);

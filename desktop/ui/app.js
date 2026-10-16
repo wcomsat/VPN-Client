@@ -58,6 +58,14 @@ function renderModes() {
       b.classList.remove("locked");
     }
   });
+  const hint = $("mode-hint");
+  if (S.mode === "tun") {
+    hint.textContent = S.admin
+      ? "TUN — весь трафик через VPN (включая игры и UDP)."
+      : "TUN — весь трафик, но нужны права администратора. Нажмите TUN, чтобы перезапустить.";
+  } else {
+    hint.textContent = "Прокси — браузеры и приложения. Без прав администратора.";
+  }
 }
 
 async function refresh() {
@@ -102,8 +110,14 @@ document.querySelectorAll("#modes .seg-btn").forEach((b) => {
   b.onclick = async () => {
     const m = b.dataset.mode;
     if (m === "tun" && !S.admin) {
-      $("err").textContent = "Для режима TUN приложение нужно запустить от имени администратора.";
-      try { await invoke("elevate"); } catch (e) { $("err").textContent = String(e); }
+      const ok = confirm(
+        "Режим TUN направляет ВЕСЬ трафик (браузеры, приложения, игры) через VPN.\n\n" +
+        "Для него нужны права администратора. Перезапустить приложение с правами администратора?"
+      );
+      $("err").textContent = "";
+      if (ok) {
+        try { await invoke("elevate"); } catch (e) { $("err").textContent = String(e); }
+      }
       return;
     }
     S.mode = m;

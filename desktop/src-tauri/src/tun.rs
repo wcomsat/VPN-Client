@@ -94,22 +94,31 @@ pub fn start(tun2socks: &Path, socks: &str, server_ip: &str) -> Result<TunSessio
         return Err("интерфейс wintun не появился (нужен wintun.dll рядом с tun2socks.exe)".into());
     }
 
-    let steps: [&[&str]; 3] = [
-        &["interface", "ipv4", "set", "address", "name=wintun", "source=static", "addr=192.168.123.1", "mask=255.255.255.0"],
-        &["interface", "ipv4", "set", "dnsservers", "name=wintun", "static", "address=1.1.1.1", "register=none", "validate=no"],
-        &["interface", "ipv4", "add", "route", "0.0.0.0/0", "wintun", "192.168.123.1", "metric=1"],
-    ];
-    for s in steps {
+    // 1. Настроить адрес и DNS на интерфейсе wintun.
+    for s in [
+        &["interface", "ipv4", "set", "address", "name=wintun", "source=static", "addr=192.168.123.1", "mask=255.255.255.0"][..],
+        &["interface", "ipv4", "set", "dnsservers", "name=wintun", "static", "address=1.1.1.1", "register=none", "validate=no"][..],
+    ] {
         if let Err(e) = netsh(s) {
             session.stop();
             return Err(format!("netsh {}: {e}", s.join(" ")));
         }
     }
-    // host-маршрут к серверу — МИМО туннеля (иначе петля)
+
+    // 2. СНАЧАЛА host-маршрут к серверу — МИМО туннеля (иначе при подмене
+    //    маршрута по умолчанию соединение к серверу уйдёт в петлю).
     let host = format!("{server_ip}/32");
-    if let Err(e) = netsh(&["interface", "ipv4", "add", "route", &host, &session.alias.clone(), &session.gateway.clone(), "metric=1"]) {
+    let alias = session.alias.clone();
+    let gateway = session.gateway.clone();
+    if let Err(e) = netsh(&["interface", "ipv4", "add", "route", &host, &alias, &gateway, "metric=1"]) {
         session.stop();
         return Err(format!("netsh host-route: {e}"));
+    }
+
+    // 3. Только теперь весь трафик — через tun.
+    if let Err(e) = netsh(&["interface", "ipv4", "add", "route", "0.0.0.0/0", "wintun", "192.168.123.1", "metric=1"]) {
+        session.stop();
+        return Err(format!("netsh default-route: {e}"));
     }
 
     Ok(session)
