@@ -1,25 +1,28 @@
 # Сторонние компоненты
 
-Проект использует только permissive-лицензии (MPL/MIT). GPL-компоненты
+Проект использует только permissive-лицензии (MIT/MPL/Apache). GPL-компоненты
 (sing-box, v2rayNG, Hiddify) сознательно НЕ используются.
+
+## Приложение
 
 | Компонент | Роль | Лицензия |
 |---|---|---|
-| [Xray-core](https://github.com/XTLS/Xray-core) | ядро туннеля (VLESS+REALITY+xHTTP/Vision) | MPL-2.0 |
-| [libXray](https://github.com/XTLS/libXray) | Android-AAR для Xray-core | MIT |
+| [Tauri](https://github.com/tauri-apps/tauri) | каркас приложения | MIT / Apache-2.0 |
+| WebView2 (Microsoft Edge) | движок окна (системный) | распространяется Microsoft |
+| различные Rust-крейты (serde, …) | вспомогательные | MIT / Apache-2.0 |
+
+## Ядро туннеля (поставляется отдельно, кладётся в resources)
+
+| Компонент | Роль | Лицензия |
+|---|---|---|
+| [Xray-core](https://github.com/XTLS/Xray-core) | VLESS + REALITY (xHTTP / Vision) | MPL-2.0 |
 | [xjasonlyu/tun2socks](https://github.com/xjasonlyu/tun2socks) | маршрутизация TUN → SOCKS | MIT |
-| [WinTun](https://www.wintun.net/) (только prebuilt DLL) | TUN-драйвер Windows | см. prebuilt-binaries-license |
+| [WinTun](https://www.wintun.net/) (prebuilt DLL) | TUN-драйвер Windows | см. prebuilt-binaries-license |
 
 ## Примечания
 
-- **Xray-core (MPL-2.0).** Файловый copyleft: изменения в самих файлах Xray-core
-  должны оставаться под MPL-2.0. Мы не патчим ядро, а только компонуем; наш код
-  остаётся под MIT.
-- **WinTun.** Исходники драйвера — GPL-2.0, но официальные подписанные
-  `wintun.dll` распространяются по отдельной лицензии prebuilt binaries, которая
-  разрешает их поставку вместе с приложением, использующим API Wintun. Мы
-  поставляем **только DLL**, исходники драйвера не трогаем.
-- **libXray (MIT)** — обёртка MPL-ядра; MIT совместим с нашим MIT-кодом.
-
-Полные тексты лицензий зависимостей добавляются в собранные артефакты
-(каталог `THIRD-PARTY-LICENSES/` в релизном zip/APK).
+- **Xray-core (MPL-2.0)** — файловый copyleft; мы не патчим ядро, а компонуем
+  как отдельный исполняемый файл. Наш код остаётся под MIT.
+- **WinTun** — исходники драйвера GPL-2.0, но официальные подписанные
+  `wintun.dll` распространяются по отдельной лицензии prebuilt binaries,
+  допускающей поставку вместе с приложением. Поставляем только DLL.

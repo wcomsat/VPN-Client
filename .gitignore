@@ -1,37 +1,44 @@
 # --- Секреты: НИКОГДА не коммитить -----------------------------------------
-# Персональные подписки и ключи клиентов (UUID) — не для репозитория.
 *.secret
-subscription.local.txt
+subscription*.txt
+!shared/subscription.example.txt
 secrets/
 *.keystore
 *.jks
 keystore.properties
-local.properties
+.env
+.env.*
 
-# --- Go (windows/) ----------------------------------------------------------
-windows/bin/
-windows/dist/
+# --- Rust ------------------------------------------------------------------
+/target
+**/*.rs.bk
+
+# --- Tauri -----------------------------------------------------------------
+# генерируемые схемы разрешений
+desktop/src-tauri/gen/
+# встроенное ядро (скачивается скриптом перед сборкой)
+desktop/src-tauri/resources/xray.exe
+desktop/src-tauri/resources/tun2socks.exe
+desktop/src-tauri/resources/wintun.dll
+desktop/src-tauri/resources/geoip.dat
+desktop/src-tauri/resources/geosite.dat
+
+# --- Node / фронтенд -------------------------------------------------------
+node_modules/
+dist/
+
+# --- Артефакты сборки/подписи ---------------------------------------------
 *.exe
-*.test
-*.out
+*.msi
+*.dll
+*.pdb
+*.zip
+bundle/
 
-# --- Android (android/) -----------------------------------------------------
-android/.gradle/
-android/build/
-android/app/build/
-android/.idea/
-android/local.properties
-android/captures/
-*.apk
-*.aab
-*.ap_
-*.dex
-
-# --- Общее ------------------------------------------------------------------
+# --- IDE/ОС ----------------------------------------------------------------
 .idea/
 .vscode/
 *.swp
 *~
 .DS_Store
 Thumbs.db
-dist/
