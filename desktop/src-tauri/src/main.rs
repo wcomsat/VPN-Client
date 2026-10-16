@@ -31,6 +31,7 @@ fn main() {
                 let _ = w.set_focus();
             }
         }))
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(state::AppState::new())
         .invoke_handler(tauri::generate_handler![
             commands::get_status,
@@ -45,6 +46,19 @@ fn main() {
             // Убрать «зависший» системный прокси от прошлого запуска.
             proxy::clear_stale(&format!("127.0.0.1:{}", state::HTTP_PORT));
             tray::init(app.handle())?;
+
+            // Проверка обновлений при запуске (тихо; при наличии — ставим и перезапускаем).
+            let handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                use tauri_plugin_updater::UpdaterExt;
+                if let Ok(updater) = handle.updater() {
+                    if let Ok(Some(update)) = updater.check().await {
+                        if update.download_and_install(|_, _| {}, || {}).await.is_ok() {
+                            handle.restart();
+                        }
+                    }
+                }
+            });
             Ok(())
         })
         .on_window_event(|window, event| {

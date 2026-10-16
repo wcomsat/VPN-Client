@@ -33,14 +33,39 @@ shared/   Контракт подписки и тест-фикстуры (vless 
 ## Разработка
 
 ```bash
-cargo test -p vpn-core            # парсер/конфиг против shared/fixtures
-cd desktop && npx @tauri-apps/cli dev     # запуск приложения
-cd desktop && npx @tauri-apps/cli build   # установщик (NSIS)
+cargo test -p vpn-core                    # парсер/конфиг против shared/fixtures
+cargo run -p vpn-desktop -- selftest      # проверка бэкенда без окна
+
+# ядро туннеля в resources/ (Xray + tun2socks + wintun)
+pwsh tools/fetch-core.ps1
+
+cd desktop
+npx @tauri-apps/cli dev                   # запуск приложения
+npx @tauri-apps/cli build                 # установщик NSIS
 ```
 
-Перед сборкой положите ядро в `desktop/src-tauri/resources/`
-(`xray.exe`, `tun2socks.exe`, `wintun.dll`) — скрипт для этого появится в
-`tools/`.
+Готовый установщик: `target/release/bundle/nsis/VPN_<версия>_x64-setup.exe`
+(ярлык на рабочем столе и в «Пуск», права администратора не нужны).
+
+## Релиз и авто-обновление
+
+Обновления раздаются через GitHub Releases. Клиент при запуске проверяет
+`latest.json` и при наличии обновления ставит его сам.
+
+Релиз публикуется workflow [`.github/workflows/release.yml`](.github/workflows/release.yml)
+по тегу `v*` (tauri-action). Для подписи обновлений в настройках репозитория
+(Secrets) задайте:
+
+- `TAURI_SIGNING_PRIVATE_KEY` — содержимое приватного ключа (создан командой
+  `npx @tauri-apps/cli signer generate`);
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` — пароль ключа.
+
+Публичный ключ вписан в `desktop/src-tauri/tauri.conf.json` (`plugins.updater.pubkey`).
+
+## Установка (для пользователя)
+
+Скачать `VPN_<версия>_x64-setup.exe` из последнего релиза и запустить. Установка
+идёт в профиль пользователя; создаются ярлык на рабочем столе и в «Пуск».
 
 ## План
 

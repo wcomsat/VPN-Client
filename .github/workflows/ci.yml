@@ -1,0 +1,22 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  rust:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Тесты ядра (парсер/конфиг)
+        run: cargo test -p vpn-core
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets
+      - name: Сборка приложения (без бандла)
+        run: cargo build -p vpn-desktop

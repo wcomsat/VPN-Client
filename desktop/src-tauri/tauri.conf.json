@@ -24,9 +24,18 @@
       "csp": null
     }
   },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/wcomsat/VPN-Client/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDAyQjFDMTIyM0Y2OTE1OTcKUldTWEZXay9Jc0d4QWowY2UxMUdZZk5rQkVoRzlyLzB3cVRUdFR0Y0dwdlAyRkhYR29CZVp5S2sK"
+    }
+  },
   "bundle": {
     "active": true,
     "targets": ["nsis"],
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
