@@ -84,16 +84,32 @@ async function load(){
   var d = await api("/load");
   document.getElementById("sub").value = d.subscription || "";
 }
-async function save(){ setErr(""); var d = await api("/save",{subscription:document.getElementById("sub").value}); if(d.error) setErr(d.error); }
-async function check(){ setErr(""); var d = await api("/parse",{subscription:document.getElementById("sub").value}); if(d.error){ setErr(d.error); } else { setErr("Каналы: " + d.channels.join(", ")); } }
+async function save(){ setErr(""); var d = await api("/save",{subscription:document.getElementById("sub").value}); if(d.error){ setErr(d.error); } else { await check(); } }
+function mapName(t){ return t === "tcp" ? "vision" : t; }
+function label(n){ if(n === "xhttp"){ return "xhttp — основной"; } if(n === "vision"){ return "vision — резерв"; } return n; }
+async function check(){
+  setErr("");
+  var d = await api("/parse",{subscription:document.getElementById("sub").value});
+  var sel = document.getElementById("channel");
+  if(d.error){ setErr(d.error); sel.innerHTML = ""; return; }
+  var names = (d.channels || []).map(mapName);
+  var cur = sel.value;
+  sel.innerHTML = "";
+  names.forEach(function(n){ var o = document.createElement("option"); o.value = n; o.textContent = label(n); sel.appendChild(o); });
+  if(names.indexOf(cur) >= 0){ sel.value = cur; }
+  setErr("Каналы в подписке: " + (names.length ? names.join(", ") : "нет"));
+}
 async function connect(){
   setErr("");
-  var d = await api("/connect",{subscription:document.getElementById("sub").value, channel:document.getElementById("channel").value, mode:document.getElementById("mode").value});
+  await save();
+  var ch = document.getElementById("channel").value;
+  if(!ch){ setErr("Вставьте подписку и нажмите «Проверить»"); return; }
+  var d = await api("/connect",{subscription:document.getElementById("sub").value, channel:ch, mode:document.getElementById("mode").value});
   if(d.error) setErr(d.error);
   refresh();
 }
 async function disconnect(){ setErr(""); var d = await api("/disconnect",{}); if(d.error) setErr(d.error); refresh(); }
-load().then(function(){ refresh(); check(); });
+load().then(function(){ return refresh(); }).then(check);
 setInterval(refresh, 2000);
 </script>
 </body>
