@@ -10,9 +10,10 @@
 #    pwsh tools/package-windows.ps1 -XrayDir C:\downloads\xray -WintunDll C:\downloads\wintun.dll
 # ============================================================================
 param(
-    [string]$XrayDir   = "vendor/xray",
-    [string]$WintunDll = "vendor/wintun/wintun.dll",
-    [string]$Out       = "dist/vpn-client-windows.zip"
+    [string]$XrayDir      = "vendor/xray",
+    [string]$WintunDll    = "vendor/wintun/wintun.dll",
+    [string]$Tun2socksExe = "vendor/tun2socks/tun2socks.exe",
+    [string]$Out          = "dist/vpn-client-windows.zip"
 )
 
 $ErrorActionPreference = "Stop"
@@ -35,6 +36,11 @@ foreach ($f in @("xray.exe", "geoip.dat", "geosite.dat")) {
     if (Test-Path $p) { Copy-Item $p $stage } else { Write-Warning "нет $p" }
 }
 if (Test-Path $WintunDll) { Copy-Item $WintunDll $stage } else { Write-Warning "нет $WintunDll" }
+if (Test-Path $Tun2socksExe) {
+    Copy-Item $Tun2socksExe (Join-Path $stage "tun2socks.exe")
+} else {
+    Write-Warning "нет $Tun2socksExe (TUN-режим не будет работать)"
+}
 
 $licDir = Join-Path $stage "THIRD-PARTY-LICENSES"
 New-Item -ItemType Directory -Path $licDir | Out-Null

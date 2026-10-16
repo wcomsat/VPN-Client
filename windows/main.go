@@ -28,9 +28,10 @@ import (
 	"github.com/wcomsat/vpn-client/internal/config"
 	"github.com/wcomsat/vpn-client/internal/core"
 	"github.com/wcomsat/vpn-client/internal/proxy"
+	"github.com/wcomsat/vpn-client/internal/tun"
 )
 
-const version = "0.1.0"
+const version = "0.2.0"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -64,16 +65,18 @@ func usage() {
   version
   parse   --sub <файл|URL>                      показать каналы из подписки
   config  --sub <файл|URL> [--channel xhttp|vision] --out <файл>
-  connect --sub <файл|URL> [--channel xhttp|vision] [--no-proxy]
+  connect --sub <файл|URL> [--channel xhttp|vision] [--mode proxy|tun]
   proxy   off                                    выключить системный прокси
 
-Флаги connect/config:
+Флаги connect:
   --channel  канал: xhttp (по умолчанию) или vision
+  --mode     proxy (по умолчанию) — системный прокси; tun — весь трафик через
+             Wintun+tun2socks (нужны права администратора и tun2socks.exe)
   --socks    порт локального SOCKS  (по умолчанию 10808)
   --http     порт локального HTTP   (по умолчанию 10809, для системного прокси)
-  --no-proxy не трогать системный прокси Windows
+  --no-proxy не трогать системный прокси Windows (режим proxy)
 
-Для работы connect/config рядом с exe нужен xray.exe (ядро Xray-core).
+Рядом с exe нужны: xray.exe (ядро) и, для --mode tun, tun2socks.exe + wintun.dll.
 `)
 }
 
@@ -177,9 +180,10 @@ func cmdConnect(args []string) {
 	fs := flag.NewFlagSet("connect", flag.ExitOnError)
 	sub := fs.String("sub", "", "файл или URL подписки")
 	channel := fs.String("channel", "xhttp", "канал: xhttp|vision")
+	mode := fs.String("mode", "proxy", "режим: proxy|tun")
 	socks := fs.Int("socks", 10808, "порт локального SOCKS")
 	httpPort := fs.Int("http", 10809, "порт локального HTTP")
-	noProxy := fs.Bool("no-proxy", false, "не трогать системный прокси Windows")
+	noProxy := fs.Bool("no-proxy", false, "не трогать системный прокси Windows (режим proxy)")
 	_ = fs.Parse(args)
 	if *sub == "" {
 		fatal("укажите --sub <файл|URL>")
@@ -197,41 +201,127 @@ func cmdConnect(args []string) {
 	if err != nil {
 		fatal("%v", err)
 	}
+
+	switch *mode {
+	case "proxy":
+		runProxy(ch, cfg, xray, *socks, *httpPort, *noProxy)
+	case "tun":
+		runTun(ch, cfg, xray, *socks)
+	default:
+		fatal("неизвестный режим %q (proxy|tun)", *mode)
+	}
+}
+
+// runProxy — системный прокси (браузеры и приложения, уважающие прокси).
+func runProxy(ch *config.Channel, cfg []byte, xray string, socksPort, httpPort int, noProxy bool) {
 	proc, err := core.Start(xray, cfg)
 	if err != nil {
 		fatal("%v", err)
 	}
-
-	if !waitPort(*socks, 10*time.Second) {
+	if !waitPort(socksPort, 10*time.Second) {
 		_ = proc.Stop()
-		fatal("ядро Xray не подняло SOCKS на 127.0.0.1:%d (см. %s)", *socks, proc.LogPath())
+		fatal("ядро Xray не подняло SOCKS на 127.0.0.1:%d (см. %s)", socksPort, proc.LogPath())
 	}
 
 	var restore func() error
-	if !*noProxy {
-		restore, err = proxy.Set(fmt.Sprintf("127.0.0.1:%d", *httpPort))
+	if !noProxy {
+		restore, err = proxy.Set(fmt.Sprintf("127.0.0.1:%d", httpPort))
 		if err != nil {
 			_ = proc.Stop()
 			fatal("не удалось включить системный прокси: %v", err)
 		}
-		fmt.Printf("Системный прокси включён: 127.0.0.1:%d\n", *httpPort)
+		fmt.Printf("Системный прокси включён: 127.0.0.1:%d\n", httpPort)
 	}
 
-	fmt.Printf("Канал: %s (%s:%d, sni=%s)\n", ch.Transport, ch.Address, ch.Port, ch.Reality.ServerName)
-	fmt.Printf("SOCKS: 127.0.0.1:%d   HTTP: 127.0.0.1:%d\n", *socks, *httpPort)
-	fmt.Printf("Лог ядра: %s\n\nCtrl+C — отключить.\n", proc.LogPath())
+	printChannel(ch)
+	fmt.Printf("SOCKS: 127.0.0.1:%d   HTTP: 127.0.0.1:%d   Ядро: %s\n", socksPort, httpPort, proc.LogPath())
+	fmt.Println("\nCtrl+C — отключить.")
 
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
-	<-sig
-
+	waitSignal()
 	_ = proc.Stop()
 	if restore != nil {
 		if err := restore(); err != nil {
-			fmt.Fprintf(os.Stderr, "внимание: не удалось восстановить прокси: %v\n", err)
+			fmt.Fprintf(os.Stderr, "внимание: не восстановить прокси: %v\n", err)
 		}
 	}
 	fmt.Println("\nотключено")
+}
+
+// runTun — полноценный туннель: весь трафик (включая UDP/QUIC) через Wintun.
+func runTun(ch *config.Channel, cfg []byte, xray string, socksPort int) {
+	serverIP, err := resolveIPv4(ch.Address)
+	if err != nil {
+		fatal("%v", err)
+	}
+	tun2socks, err := core.Beside("tun2socks.exe")
+	if err != nil {
+		fatal("для TUN-режима нужен tun2socks.exe: %v", err)
+	}
+	if !tun.IsAdmin() {
+		fmt.Println("Для TUN-режима нужны права администратора — запрашиваю повышение…")
+		if err := tun.Elevate(); err != nil {
+			fatal("не удалось повысить права (%v). Запустите от имени администратора.", err)
+		}
+		return
+	}
+	alias, gateway, err := tun.PrimaryInterface()
+	if err != nil {
+		fatal("%v", err)
+	}
+	fmt.Printf("Основной интерфейс: %s (шлюз %s)\n", alias, gateway)
+
+	proc, err := core.Start(xray, cfg)
+	if err != nil {
+		fatal("%v", err)
+	}
+	if !waitPort(socksPort, 10*time.Second) {
+		_ = proc.Stop()
+		fatal("ядро Xray не подняло SOCKS на 127.0.0.1:%d (см. %s)", socksPort, proc.LogPath())
+	}
+
+	stopTun, err := tun.Start(tun2socks, fmt.Sprintf("127.0.0.1:%d", socksPort), serverIP, alias, gateway)
+	if err != nil {
+		_ = proc.Stop()
+		fatal("не удалось поднять TUN: %v", err)
+	}
+
+	printChannel(ch)
+	fmt.Printf("TUN поднят. Весь трафик идёт через сервер (%s)\n", serverIP)
+	fmt.Println("\nCtrl+C — отключить.")
+
+	waitSignal()
+	_ = stopTun()
+	_ = proc.Stop()
+	fmt.Println("\nотключено")
+}
+
+func printChannel(ch *config.Channel) {
+	fmt.Printf("Канал: %s (%s:%d, sni=%s)\n", ch.Transport, ch.Address, ch.Port, ch.Reality.ServerName)
+}
+
+func waitSignal() {
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+	<-sig
+}
+
+func resolveIPv4(host string) (string, error) {
+	if ip := net.ParseIP(host); ip != nil {
+		if v4 := ip.To4(); v4 != nil {
+			return v4.String(), nil
+		}
+		return "", fmt.Errorf("%s: нужен IPv4-адрес сервера (IPv6 в TUN пока не поддерживается)", host)
+	}
+	ips, err := net.LookupIP(host)
+	if err != nil {
+		return "", fmt.Errorf("не удалось разрешить %s: %w", host, err)
+	}
+	for _, ip := range ips {
+		if v4 := ip.To4(); v4 != nil {
+			return v4.String(), nil
+		}
+	}
+	return "", fmt.Errorf("у %s нет IPv4-адреса", host)
 }
 
 func cmdProxy(args []string) {

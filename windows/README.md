@@ -1,31 +1,33 @@
 # VPN-Client для Windows
 
-Минимальный клиент: подключение в один клик, выбор канала (xHTTP / Vision).
+Минимальный клиент: подключение одной командой, выбор канала (xHTTP / Vision).
 
-## Режим работы
+## Режимы работы
 
-**Системный прокси.** Приложение поднимает локальные инбаунды Xray (SOCKS
-`127.0.0.1:10808` и HTTP `127.0.0.1:10809`) и включает **системный HTTP-прокси**
-Windows на `127.0.0.1:10809`. Покрываются браузеры и приложения, уважающие
-системный прокси; права администратора и драйвер не нужны.
-
-Не покрывается: приложения, игнорирующие системный прокси, и UDP/QUIC.
-Полноценный TUN (весь трафик) — следующий шаг.
+- **`--mode proxy`** (по умолчанию) — системный HTTP-прокси на локальный инбаунд
+  Xray. Покрывает браузеры и приложения, уважающие системный прокси. **Без прав
+  администратора и без драйвера.** Не покрывает UDP/QUIC и игры.
+- **`--mode tun`** — полноценный туннель: Wintun + `tun2socks` направляет **весь**
+  системный трафик (включая UDP/QUIC, игры) в локальный SOCKS Xray. **Требует
+  прав администратора.** Критичный момент: IP VPN-сервера исключается из
+  туннеля host-маршрутом (иначе петля), и трафик идёт через драйвер Wintun.
 
 ## Стек
 - **Go** — приложение.
-- **Xray-core** (`xray.exe`) — ядро, поставляется рядом с приложением.
-- `golang.org/x/sys` — доступ к реестру Windows (permissive).
+- **Xray-core** (`xray.exe`) — ядро.
+- **tun2socks** (`tun2socks.exe`, MIT) + **wintun.dll** — для режима TUN.
+- `golang.org/x/sys` — реестр/токен Windows (permissive).
 
 ## Состояние
 
 Готово:
 - разбор `vless://` и сборка конфига Xray-core (тесты против `shared/fixtures`);
-- запуск встроенного `xray.exe`;
-- системный прокси Windows (вкл. при `connect`, восстановление при выходе);
-- загрузка подписки из файла/URL.
+- запуск встроенного `xray.exe`; загрузка подписки из файла/URL;
+- режим `proxy` (системный прокси, восстановление настроек при выходе);
+- режим `tun` (Wintun + tun2socks, маршруты/DNS, host-маршрут к серверу,
+  самоповышение прав через UAC).
 
-Дальше: трей-иконка; режим TUN (Wintun + tun2socks) для полного покрытия.
+Дальше: трей-иконка; авто-обновление клиента.
 
 ## Сборка и запуск
 
@@ -35,14 +37,20 @@ go test ./...
 go build -trimpath -ldflags "-s -w" -o bin/vpn-client.exe .
 ```
 
-Рядом с `vpn-client.exe` положите `xray.exe` (Xray-core v26.x). Затем:
+Рядом с `vpn-client.exe` — `xray.exe` (Xray-core v26.x); для TUN ещё
+`tun2socks.exe` и `wintun.dll`.
 
 ```powershell
 # подписка из файла или URL (https://.../subscription.txt)
 .\bin\vpn-client.exe parse   --sub ..\subscription.txt
-.\bin\vpn-client.exe connect --sub ..\subscription.txt --channel xhttp
 
-# выключить системный прокси, если он остался включённым
+# системный прокси (без админа)
+.\bin\vpn-client.exe connect --sub ..\subscription.txt --channel xhttp --mode proxy
+
+# полный туннель (запросит UAC)
+.\bin\vpn-client.exe connect --sub ..\subscription.txt --channel xhttp --mode tun
+
+# снять системный прокси, если остался включённым
 .\bin\vpn-client.exe proxy off
 ```
 
@@ -51,10 +59,14 @@ go build -trimpath -ldflags "-s -w" -o bin/vpn-client.exe .
 ```
 main.go                        CLI (version/parse/config/connect/proxy)
 internal/config/config.go      парсер vless:// + сборка конфига ядра
-internal/core/core.go          запуск встроенного xray.exe
+internal/core/core.go          запуск встроенного xray.exe; поиск файлов рядом
 internal/proxy/proxy_windows.go системный прокси Windows (реестр + WinINet)
+internal/tun/tun_windows.go    TUN: Wintun + tun2socks, маршруты/DNS, UAC
 ```
 
-> `connect` меняет настройки прокси в реестре (`HKCU\...\Internet Settings`) и
-> восстанавливает их при Ctrl+C. Если приложение было закрыто аварийно —
-> выполните `vpn-client proxy off`.
+> **TUN и права.** Режим `tun` меняет маршруты и создаёт сетевой адаптер —
+> нужны права администратора (клиент сам запросит UAC). При аварийном
+> завершении маршруты могут остаться — удалить их можно повторным запуском или
+> сбросом адаптера Wintun (`netsh interface set interface "wintun" disable`).
+> Режим TUN требует проверки на живом ПК — драйверы и маршруты в песочнице не
+> тестируются.

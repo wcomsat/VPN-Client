@@ -25,12 +25,15 @@ jobs:
       - name: Сборка vpn-client.exe
         working-directory: windows
         run: go build -trimpath -ldflags "-s -w" -o dist/vpn-client.exe .
-      - name: Ядро Xray-core рядом с exe
+      - name: Ядро Xray-core + tun2socks рядом с exe
         shell: pwsh
         run: |
           Invoke-WebRequest "https://github.com/XTLS/Xray-core/releases/download/$env:XRAY_VERSION/Xray-windows-64.zip" -OutFile xray.zip
           Expand-Archive xray.zip -DestinationPath windows/dist -Force
-      - name: Упаковка zip (exe + ядро + лицензии)
+          Invoke-WebRequest "https://github.com/xjasonlyu/tun2socks/releases/download/v2.7.0/tun2socks-windows-amd64.zip" -OutFile tun2socks.zip
+          Expand-Archive tun2socks.zip -DestinationPath windows/dist -Force
+          Move-Item windows/dist/tun2socks-windows-amd64.exe windows/dist/tun2socks.exe -Force
+      - name: Упаковка zip (exe + ядро + tun2socks + лицензии)
         shell: pwsh
         run: |
           $out = "windows/dist/vpn-client-windows.zip"
@@ -38,7 +41,7 @@ jobs:
           New-Item -ItemType Directory -Path $lic -Force | Out-Null
           Copy-Item LICENSE, NOTICE $lic
           Copy-Item windows/dist/LICENSE-wintun.txt $lic -ErrorAction SilentlyContinue
-          Compress-Archive -Path "windows/dist/vpn-client.exe","windows/dist/xray.exe","windows/dist/geoip.dat","windows/dist/geosite.dat","windows/dist/wintun.dll","$lic" -DestinationPath $out -Force
+          Compress-Archive -Path "windows/dist/vpn-client.exe","windows/dist/xray.exe","windows/dist/geoip.dat","windows/dist/geosite.dat","windows/dist/wintun.dll","windows/dist/tun2socks.exe","$lic" -DestinationPath $out -Force
       - uses: actions/upload-artifact@v4
         with:
           name: windows-package

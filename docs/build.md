@@ -18,8 +18,14 @@ go build -trimpath -ldflags "-s -w" -o bin/vpn-client.exe .
 Комплект для раздачи (см. `tools/package-windows.ps1`):
 - `vpn-client.exe`
 - ядро `xray.exe` и `geoip.dat`/`geosite.dat`
-- `wintun.dll` (prebuilt, x64)
+- `tun2socks.exe` (v2.7.0, MIT) — для режима TUN
+- `wintun.dll` (prebuilt, x64) — драйвер для режима TUN
 - `THIRD-PARTY-LICENSES/` (тексты лицензий)
+
+Скачать для упаковки: [Xray-core Windows](https://github.com/XTLS/Xray-core/releases)
+(`Xray-windows-64.zip`) и [tun2socks](https://github.com/xjasonlyu/tun2socks/releases)
+(`tun2socks-windows-amd64.zip`; внутри `tun2socks-windows-amd64.exe` → переименовать
+в `tun2socks.exe`).
 
 ## Android (Kotlin/Gradle)
 

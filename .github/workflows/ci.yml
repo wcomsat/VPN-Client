@@ -22,12 +22,14 @@ jobs:
       - name: Сборка vpn-client.exe
         working-directory: windows
         run: go build -trimpath -ldflags "-s -w" -o dist/vpn-client.exe .
-      - name: Ядро Xray-core (v26.3.27) рядом с exe
+      - name: Ядро Xray-core + tun2socks рядом с exe
         shell: pwsh
         run: |
-          $v = "v26.3.27"
-          Invoke-WebRequest "https://github.com/XTLS/Xray-core/releases/download/$v/Xray-windows-64.zip" -OutFile xray.zip
+          Invoke-WebRequest "https://github.com/XTLS/Xray-core/releases/download/v26.3.27/Xray-windows-64.zip" -OutFile xray.zip
           Expand-Archive xray.zip -DestinationPath windows/dist -Force
+          Invoke-WebRequest "https://github.com/xjasonlyu/tun2socks/releases/download/v2.7.0/tun2socks-windows-amd64.zip" -OutFile tun2socks.zip
+          Expand-Archive tun2socks.zip -DestinationPath windows/dist -Force
+          Move-Item windows/dist/tun2socks-windows-amd64.exe windows/dist/tun2socks.exe -Force
       - uses: actions/upload-artifact@v4
         with:
           name: vpn-client-windows
@@ -36,6 +38,8 @@ jobs:
             windows/dist/xray.exe
             windows/dist/geoip.dat
             windows/dist/geosite.dat
+            windows/dist/wintun.dll
+            windows/dist/tun2socks.exe
 
   android-build:
     runs-on: ubuntu-latest

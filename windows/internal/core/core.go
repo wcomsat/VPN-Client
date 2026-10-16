@@ -18,17 +18,26 @@ type Process struct {
 	logFile string
 }
 
-// XrayPath ищет xray.exe рядом с исполняемым файлом приложения.
-func XrayPath() (string, error) {
+// Beside ищет файл рядом с исполняемым файлом приложения.
+func Beside(name string) (string, error) {
 	exe, err := os.Executable()
 	if err != nil {
 		return "", err
 	}
-	candidate := filepath.Join(filepath.Dir(exe), "xray.exe")
+	candidate := filepath.Join(filepath.Dir(exe), name)
 	if _, err := os.Stat(candidate); err != nil {
-		return "", fmt.Errorf("ядро не найдено (%s): положите xray.exe рядом с приложением", candidate)
+		return "", fmt.Errorf("%s не найден рядом с приложением", name)
 	}
 	return candidate, nil
+}
+
+// XrayPath ищет xray.exe рядом с исполняемым файлом приложения.
+func XrayPath() (string, error) {
+	p, err := Beside("xray.exe")
+	if err != nil {
+		return "", fmt.Errorf("ядро не найдено: положите xray.exe рядом с приложением")
+	}
+	return p, nil
 }
 
 // Start запускает ядро с конфигом и возвращает процесс.
