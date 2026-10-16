@@ -7,15 +7,55 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="card">
-    <div class="head">
-      <div class="logo">V</div>
+  <div class="app">
+    <header class="head">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <path fill="#fff" d="M12 2 4 5v6c0 5 3.4 9.2 8 11 4.6-1.8 8-6 8-11V5l-8-3z"/>
+        </svg>
+      </div>
       <div>
         <h1>VPN</h1>
-        <div class="sub">Личный доступ</div>
+        <div class="sub" id="hsub">Личный доступ</div>
       </div>
-    </div>
-    <p class="note">Каркас (M0). Проверка связи с ядром: <span id="ping">…</span></p>
+    </header>
+
+    <!-- Экран 1: ввод подписки -->
+    <section id="setup" class="screen">
+      <label class="lbl">Подписка — вставьте ссылки <code>vless://</code> (по одной в строке)</label>
+      <textarea id="sub" rows="5" spellcheck="false" placeholder="vless://..."></textarea>
+      <button id="save" class="btn primary">Сохранить</button>
+      <div class="err" id="setup-err"></div>
+    </section>
+
+    <!-- Экран 2: главный -->
+    <section id="main" class="screen hidden">
+      <div class="powerwrap">
+        <button id="power" class="power off" title="Подключить/Отключить">
+          <svg viewBox="0 0 24 24" width="46" height="46" aria-hidden="true">
+            <path fill="currentColor" d="M13 3h-2v10h2V3zm4.83 2.17-1.42 1.42A6.92 6.92 0 0 1 19 12a7 7 0 1 1-11.41-5.41L6.17 5.17A8.93 8.93 0 0 0 3 12a9 9 0 1 0 14.83-6.83z"/>
+          </svg>
+        </button>
+        <div class="state" id="state">Отключено</div>
+        <div class="detail" id="detail"></div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">Канал</div>
+        <div class="seg" id="channels"></div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">Режим</div>
+        <div class="seg" id="modes">
+          <button class="seg-btn" data-mode="proxy">Прокси<span>браузеры</span></button>
+          <button class="seg-btn" data-mode="tun">TUN<span>весь трафик</span></button>
+        </div>
+      </div>
+
+      <div class="err" id="err"></div>
+      <button class="link" id="edit">Изменить подписку</button>
+    </section>
   </div>
   <script src="app.js"></script>
 </body>
