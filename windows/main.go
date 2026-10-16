@@ -32,17 +32,21 @@ import (
 	"github.com/wcomsat/vpn-client/internal/webui"
 )
 
-const version = "0.4.0"
+const version = "0.5.0"
 
 func main() {
-	// Запуск без аргументов (двойным кликом) — трей + интерфейс.
+	// Запуск без аргументов (двойным кликом) — нативное окно.
 	if len(os.Args) < 2 {
-		cmdTray()
+		cmdApp()
 		return
 	}
 	switch os.Args[1] {
 	case "version", "-v", "--version":
 		fmt.Println("vpn-client", version)
+	case "window", "app":
+		cmdApp()
+	case "tray":
+		cmdTray()
 	case "ui":
 		cmdUI(os.Args[2:])
 	case "parse":
@@ -102,6 +106,16 @@ func readSource(src string) ([]byte, error) {
 }
 
 const uiAddr = "127.0.0.1:8787"
+
+// cmdApp запускает нативное окно управления.
+func cmdApp() {
+	mgr := app.New()
+	// Если остался «зависший» системный прокси от прошлого запуска — выключаем.
+	_ = proxy.ClearStale(fmt.Sprintf("127.0.0.1:%d", app.HTTPPort))
+	if err := runWindow(mgr); err != nil {
+		fatal("%v", err)
+	}
+}
 
 // cmdUI запускает только веб-интерфейс (без трея).
 func cmdUI(args []string) {

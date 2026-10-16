@@ -7,6 +7,9 @@ package proxy
 
 import (
 	"fmt"
+	"net"
+	"strings"
+	"time"
 
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
@@ -98,6 +101,40 @@ func Disable() error {
 		return err
 	}
 	defer k.Close()
+	if err := k.SetDWordValue("ProxyEnable", 0); err != nil {
+		return err
+	}
+	notify()
+	return nil
+}
+
+// ClearStale выключает системный прокси, если он указывает на наш локальный
+// адрес addr, но порт уже не слушается (приложение убито/упало). Иначе браузер
+// остаётся без интернета, обращаясь к мёртвому прокси.
+func ClearStale(addr string) error {
+	k, err := registry.OpenKey(registry.CURRENT_USER, regSubKey, registry.QUERY_VALUE|registry.SET_VALUE)
+	if err != nil {
+		return err
+	}
+	defer k.Close()
+
+	enable, _, err := k.GetIntegerValue("ProxyEnable")
+	if err != nil || enable != 1 {
+		return nil
+	}
+	server, _, err := k.GetStringValue("ProxyServer")
+	if err != nil {
+		return nil
+	}
+	s := strings.TrimPrefix(server, "http://")
+	if s != addr {
+		return nil
+	}
+	c, err := net.DialTimeout("tcp", addr, 400*time.Millisecond)
+	if err == nil {
+		_ = c.Close()
+		return nil // прокси жив — не трогаем
+	}
 	if err := k.SetDWordValue("ProxyEnable", 0); err != nil {
 		return err
 	}

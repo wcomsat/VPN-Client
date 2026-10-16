@@ -12,3 +12,5 @@ func Set(addr string) (func() error, error) {
 func Disable() error {
 	return errors.New("системный прокси поддерживается только в Windows")
 }
+
+func ClearStale(addr string) error { return nil }
