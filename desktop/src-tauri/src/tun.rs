@@ -57,6 +57,12 @@ pub fn elevate() -> Result<(), String> {
     Ok(())
 }
 
+/// Убрать маршруты, оставшиеся от прошлого запуска (если приложение убили
+/// в режиме TUN). Требует прав администратора — иначе молча ничего не делает.
+pub fn cleanup_leftovers() {
+    let _ = netsh(&["interface", "ipv4", "delete", "route", "0.0.0.0/0", "wintun", "192.168.123.1"]);
+}
+
 /// Активная сессия TUN.
 pub struct TunSession {
     child: Child,
