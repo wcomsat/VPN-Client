@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/wcomsat/VPN-Client/shared/schema/channel.schema.json",
+  "title": "VPN-Client channel model",
+  "description": "Нормализованное представление одного канала, извлечённого из vless://",
+  "type": "object",
+  "required": ["name", "protocol", "uuid", "address", "port", "transport", "security", "reality"],
+  "additionalProperties": false,
+  "properties": {
+    "name": { "type": "string", "description": "Из фрагмента # ссылки" },
+    "protocol": { "const": "vless" },
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    },
+    "address": { "type": "string", "description": "IP или домен сервера" },
+    "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+    "transport": { "enum": ["xhttp", "tcp"] },
+    "security": { "const": "reality" },
+    "reality": {
+      "type": "object",
+      "required": ["serverName", "publicKey", "shortId", "fingerprint"],
+      "additionalProperties": false,
+      "properties": {
+        "serverName": { "type": "string", "description": "SNI домена-донора" },
+        "publicKey": { "type": "string" },
+        "shortId": { "type": "string" },
+        "fingerprint": { "type": "string", "description": "Например, firefox" },
+        "spiderX": { "type": "string", "default": "/" }
+      }
+    },
+    "xhttp": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "host": { "type": "string" },
+        "path": { "type": "string" },
+        "mode": { "const": "stream-one" }
+      }
+    },
+    "flow": { "type": ["string", "null"], "description": "xtls-rprx-vision для tcp" }
+  }
+}

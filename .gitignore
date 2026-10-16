@@ -1,0 +1,37 @@
+# --- Секреты: НИКОГДА не коммитить -----------------------------------------
+# Персональные подписки и ключи клиентов (UUID) — не для репозитория.
+*.secret
+subscription.local.txt
+secrets/
+*.keystore
+*.jks
+keystore.properties
+local.properties
+
+# --- Go (windows/) ----------------------------------------------------------
+windows/bin/
+windows/dist/
+*.exe
+*.test
+*.out
+
+# --- Android (android/) -----------------------------------------------------
+android/.gradle/
+android/build/
+android/app/build/
+android/.idea/
+android/local.properties
+android/captures/
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# --- Общее ------------------------------------------------------------------
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+dist/

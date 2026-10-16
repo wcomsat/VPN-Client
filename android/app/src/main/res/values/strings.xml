@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">VPN</string>
+    <string name="hint_subscription">Вставьте ссылку-подписку (vless://…)</string>
+    <string name="save">Сохранить</string>
+    <string name="connect">Подключить</string>
+    <string name="disconnect">Отключить</string>
+</resources>

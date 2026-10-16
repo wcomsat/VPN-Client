@@ -1,0 +1,2 @@
+vless://11111111-1111-4111-8111-111111111111@203.0.113.45:443?encryption=none&security=reality&sni=www.github.com&fp=firefox&pbk=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA&sid=6ef4f969d11e9751&type=xhttp&path=/api/v1/updates&mode=stream-one#ivan-phone-xhttp
+vless://11111111-1111-4111-8111-111111111111@203.0.113.45:8443?encryption=none&security=reality&sni=www.github.com&fp=firefox&pbk=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB&sid=454435ab6d6ab48e&type=tcp&flow=xtls-rprx-vision#ivan-phone-vision

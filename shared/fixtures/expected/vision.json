@@ -1,0 +1,41 @@
+{
+  "_comment": "Ожидаемый конфиг Xray-core для резервного канала (TCP + XTLS Vision), собранный из shared/fixtures/sample-links.txt",
+  "log": { "loglevel": "warning" },
+  "inbounds": [
+    {
+      "listen": "127.0.0.1",
+      "port": 10808,
+      "protocol": "socks",
+      "settings": { "udp": true },
+      "sniffing": { "enabled": true, "destOverride": ["http", "tls", "quic"] }
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "vless",
+      "settings": {
+        "vnext": [
+          {
+            "address": "203.0.113.45",
+            "port": 8443,
+            "users": [
+              { "id": "11111111-1111-4111-8111-111111111111", "encryption": "none", "flow": "xtls-rprx-vision" }
+            ]
+          }
+        ]
+      },
+      "streamSettings": {
+        "network": "tcp",
+        "security": "reality",
+        "realitySettings": {
+          "serverName": "www.github.com",
+          "fingerprint": "firefox",
+          "publicKey": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+          "shortId": "454435ab6d6ab48e",
+          "spiderX": "/"
+        }
+      }
+    },
+    { "protocol": "freedom", "tag": "direct" }
+  ]
+}
