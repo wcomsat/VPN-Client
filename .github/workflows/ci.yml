@@ -19,6 +19,23 @@ jobs:
       - name: go test (парсер против общих фикстур)
         working-directory: windows
         run: go test ./...
+      - name: Сборка vpn-client.exe
+        working-directory: windows
+        run: go build -trimpath -ldflags "-s -w" -o dist/vpn-client.exe .
+      - name: Ядро Xray-core (v26.3.27) рядом с exe
+        shell: pwsh
+        run: |
+          $v = "v26.3.27"
+          Invoke-WebRequest "https://github.com/XTLS/Xray-core/releases/download/$v/Xray-windows-64.zip" -OutFile xray.zip
+          Expand-Archive xray.zip -DestinationPath windows/dist -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vpn-client-windows
+          path: |
+            windows/dist/vpn-client.exe
+            windows/dist/xray.exe
+            windows/dist/geoip.dat
+            windows/dist/geosite.dat
 
   android-build:
     runs-on: ubuntu-latest
