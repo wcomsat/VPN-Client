@@ -34,6 +34,8 @@ type Manager struct {
 func New() *Manager { return &Manager{} }
 
 // PickChannel выбирает канал из подписки: «vision» — это транспорт tcp.
+// Если запрошенного канала нет, берём первый доступный (чтобы одна вставленная
+// ссылка тоже работала), а не падаем с ошибкой.
 func PickChannel(chans []*config.Channel, channel string) (*config.Channel, error) {
 	want := "xhttp"
 	switch channel {
@@ -49,7 +51,10 @@ func PickChannel(chans []*config.Channel, channel string) (*config.Channel, erro
 			return c, nil
 		}
 	}
-	return nil, fmt.Errorf("в подписке нет канала %q", channel)
+	if len(chans) > 0 {
+		return chans[0], nil
+	}
+	return nil, fmt.Errorf("в подписке нет ни одного канала")
 }
 
 // Connect поднимает канал. mode: "proxy" | "tun".

@@ -93,7 +93,8 @@ async function connect(){
   refresh();
 }
 async function disconnect(){ setErr(""); var d = await api("/disconnect",{}); if(d.error) setErr(d.error); refresh(); }
-load(); refresh(); setInterval(refresh, 2000);
+load().then(function(){ refresh(); check(); });
+setInterval(refresh, 2000);
 </script>
 </body>
 </html>`

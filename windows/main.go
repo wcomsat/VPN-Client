@@ -32,7 +32,7 @@ import (
 	"github.com/wcomsat/vpn-client/internal/webui"
 )
 
-const version = "0.3.1"
+const version = "0.3.2"
 
 func main() {
 	// Запуск без аргументов (двойным кликом) — открываем интерфейс.
