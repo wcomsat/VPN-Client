@@ -35,9 +35,10 @@ import (
 const version = "0.3.0"
 
 func main() {
+	// Запуск без аргументов (двойным кликом) — открываем интерфейс.
 	if len(os.Args) < 2 {
-		usage()
-		os.Exit(2)
+		cmdUI(nil)
+		return
 	}
 	switch os.Args[1] {
 	case "version", "-v", "--version":
