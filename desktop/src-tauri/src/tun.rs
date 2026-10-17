@@ -131,6 +131,11 @@ pub fn start(tun2socks: &Path, socks: &str, server_ip: &str) -> Result<TunSessio
 }
 
 impl TunSession {
+    /// Жив ли процесс tun2socks.
+    pub fn alive(&mut self) -> bool {
+        matches!(self.child.try_wait(), Ok(None))
+    }
+
     pub fn stop(&mut self) {
         let _ = netsh(&["interface", "ipv4", "delete", "route", "0.0.0.0/0", "wintun", "192.168.123.1"]);
         let host = format!("{}/32", self.server_ip);

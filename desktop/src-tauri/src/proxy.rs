@@ -91,6 +91,19 @@ pub fn restore(st: &ProxyState) -> Result<(), String> {
     Ok(())
 }
 
+/// Выключить прокси, только если он указывает на наш адрес (аварийная очистка).
+pub fn disable_if_ours(addr: &str) {
+    let k = match key() {
+        Ok(k) => k,
+        Err(_) => return,
+    };
+    let server: String = k.get_value("ProxyServer").unwrap_or_default();
+    let server = server.strip_prefix("http://").unwrap_or(&server).to_string();
+    if server == addr {
+        let _ = disable();
+    }
+}
+
 /// Выключить системный прокси.
 pub fn disable() -> Result<(), String> {
     let k = key()?;

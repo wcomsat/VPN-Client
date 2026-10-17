@@ -18,6 +18,8 @@ pub struct Inner {
     pub mode: String,
     pub channel: String,
     pub server: String,
+    /// Параметры последнего подключения — для авто-восстановления после сна/сбоя.
+    pub last: Option<(String, String, String)>,
 }
 
 pub struct AppState {

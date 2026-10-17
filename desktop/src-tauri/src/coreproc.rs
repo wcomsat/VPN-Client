@@ -47,6 +47,11 @@ impl XrayProc {
         &self.log_path
     }
 
+    /// Жив ли процесс ядра.
+    pub fn alive(&mut self) -> bool {
+        matches!(self.child.try_wait(), Ok(None))
+    }
+
     pub fn stop(&mut self) {
         let _ = self.child.kill();
         let _ = self.child.wait();

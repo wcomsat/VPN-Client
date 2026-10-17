@@ -23,6 +23,14 @@ fn main() {
         }
     }
 
+    // При панике (сбой приложения) — не оставлять компьютер без интернета.
+    let default_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        proxy::disable_if_ours(&format!("127.0.0.1:{}", state::HTTP_PORT));
+        tun::cleanup_leftovers();
+        default_hook(info);
+    }));
+
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
             if let Some(w) = app.get_webview_window("main") {
@@ -47,6 +55,9 @@ fn main() {
             proxy::clear_stale(&format!("127.0.0.1:{}", state::HTTP_PORT));
             tun::cleanup_leftovers();
             tray::init(app.handle())?;
+
+            // Сторож: восстановление после сна/сбоя ядра.
+            commands::watchdog(app.handle().clone());
 
             // Проверка обновлений при запуске (тихо; при наличии — ставим и перезапускаем).
             let handle = app.handle().clone();

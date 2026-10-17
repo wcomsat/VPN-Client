@@ -151,6 +151,7 @@ pub fn do_connect(
             i.mode = "proxy".into();
             i.channel = ch.transport.clone();
             i.server = ch.address.clone();
+            i.last = Some((subscription.to_string(), channel.to_string(), mode.to_string()));
             Ok(())
         }
         "tun" => {
@@ -169,6 +170,7 @@ pub fn do_connect(
                     i.mode = "tun".into();
                     i.channel = ch.transport.clone();
                     i.server = ch.address.clone();
+                    i.last = Some((subscription.to_string(), channel.to_string(), mode.to_string()));
                     Ok(())
                 }
                 Err(e) => {
@@ -211,6 +213,41 @@ pub fn tray_connect(app: &AppHandle) -> Result<(), String> {
         return Err("нет сохранённой подписки".into());
     }
     do_connect(app, &sub, "xhttp", "proxy")
+}
+
+/// Сторож: если после сна/сбоя ядро или tun2socks умерли, а статус «подключено» —
+/// перезапускаем туннель; если не выходит — снимаем настройки, чтобы был интернет.
+pub fn watchdog(app: AppHandle) {
+    std::thread::spawn(move || loop {
+        std::thread::sleep(Duration::from_secs(5));
+
+        let recover = {
+            let st = app.state::<AppState>();
+            let mut i = st.inner.lock().unwrap();
+            if !i.running {
+                continue;
+            }
+            let xray_dead = match i.xray.as_mut() {
+                Some(p) => !p.alive(),
+                None => true,
+            };
+            let tun_dead = i.mode == "tun"
+                && match i.tun.as_mut() {
+                    Some(t) => !t.alive(),
+                    None => true,
+                };
+            if xray_dead || tun_dead {
+                i.last.clone()
+            } else {
+                continue;
+            }
+        };
+
+        let _ = do_disconnect(&app);
+        if let Some((sub, ch, mode)) = recover {
+            let _ = do_connect(&app, &sub, &ch, &mode);
+        }
+    });
 }
 
 pub fn wait_port(port: u16, timeout: Duration) -> bool {
