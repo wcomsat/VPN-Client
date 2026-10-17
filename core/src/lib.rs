@@ -282,6 +282,24 @@ pub fn build_core_config(ch: &Channel, socks_port: u16, http_port: u16) -> serde
         "sniffing": sniffing,
     });
 
+    // Split tunneling: российские и локальные ресурсы — напрямую, минуя VPN.
+    // Иначе банки/госуслуги блокируют зарубежный IP сервера.
+    let routing = json!({
+        "domainStrategy": "IPIfNonMatch",
+        "rules": [
+            {
+                "type": "field",
+                "domain": ["geosite:private", "geosite:category-ru"],
+                "outboundTag": "direct"
+            },
+            {
+                "type": "field",
+                "ip": ["geoip:private", "geoip:ru"],
+                "outboundTag": "direct"
+            }
+        ]
+    });
+
     json!({
         "log": { "loglevel": "warning" },
         "inbounds": [socks, http],
@@ -296,6 +314,7 @@ pub fn build_core_config(ch: &Channel, socks_port: u16, http_port: u16) -> serde
                 "streamSettings": stream,
             },
             { "protocol": "freedom", "tag": "direct" }
-        ]
+        ],
+        "routing": routing
     })
 }

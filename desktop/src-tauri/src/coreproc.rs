@@ -30,10 +30,17 @@ impl XrayProc {
         let out = fs::File::create(&log_path).map_err(|e| e.to_string())?;
         let err = out.try_clone().map_err(|e| e.to_string())?;
 
+        // geoip.dat/geosite.dat лежат рядом с xray.exe — Xray должен их найти.
+        let asset_dir = xray
+            .parent()
+            .map(|p| p.to_path_buf())
+            .unwrap_or_else(|| PathBuf::from("."));
+
         let child = Command::new(xray)
             .arg("run")
             .arg("-c")
             .arg(&cfg_path)
+            .env("XRAY_LOCATION_ASSET", &asset_dir)
             .stdout(out)
             .stderr(err)
             .creation_flags(CREATE_NO_WINDOW)
