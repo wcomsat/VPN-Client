@@ -56,8 +56,17 @@ try {
     Pop-Location
 
     $nsis = "target/release/bundle/nsis"
-    $setup = Get-ChildItem $nsis -Filter "*-setup.exe" | Select-Object -First 1
+    $expected = Join-Path $nsis "VPN_${ver}_x64-setup.exe"
+    if (Test-Path $expected) {
+        $setup = Get-Item $expected
+    } else {
+        # запасной вариант — самый свежий установщик
+        $setup = Get-ChildItem $nsis -Filter "*-setup.exe" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    }
     if (-not $setup) { throw "установщик не найден в $nsis" }
+    if ($setup.Name -notlike "*${ver}*") {
+        throw "найден установщик другой версии: $($setup.Name) (ожидался VPN_${ver}_x64-setup.exe)"
+    }
     $sigPath = "$($setup.FullName).sig"
     if (-not (Test-Path $sigPath)) { throw "нет подписи $sigPath" }
 
@@ -86,7 +95,9 @@ try {
         git commit -m "release: v$ver" --allow-empty | Out-Null
         git tag -f -a $tag -m "VPN $tag"
         git push origin main
+        if ($LASTEXITCODE -ne 0) { throw "git push main failed" }
         git push -f origin $tag
+        if ($LASTEXITCODE -ne 0) { throw "git push tag failed" }
     }
 
     if (-not $NoUpload) {
@@ -96,12 +107,15 @@ try {
             (Join-Path $dist "latest.json")
         )
         $exists = $false
-        try { gh release view $tag --repo $RepoSlug *> $null; $exists = $true } catch {}
+        gh release view $tag --repo $RepoSlug *> $null
+        if ($LASTEXITCODE -eq 0) { $exists = $true }
+
         if ($exists) {
             gh release upload $tag --repo $RepoSlug @assets --clobber
         } else {
             gh release create $tag --repo $RepoSlug @assets --title "VPN $tag" --notes "VPN $ver"
         }
+        if ($LASTEXITCODE -ne 0) { throw "не удалось опубликовать релиз (gh exit $LASTEXITCODE)" }
         Write-Host "[✓] Релиз: https://github.com/$RepoSlug/releases/tag/$tag"
     } else {
         Write-Host "[✓] Собрано: $($setup.FullName)"
