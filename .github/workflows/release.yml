@@ -1,9 +1,13 @@
 name: release
 
+# Релизы собираются локально: `pwsh tools/release.ps1 -Version x.y.z`.
+# Этот workflow оставлен как резервный запуск вручную (сборка на CI).
 on:
-  push:
-    tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Существующий тег релиза (например v1.0.3)"
+        required: true
 
 permissions:
   contents: write
@@ -13,6 +17,8 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
 
       - uses: actions/setup-node@v4
         with:
@@ -40,7 +46,7 @@ jobs:
             $extra = @("--config", (Join-Path $PWD "updater.json"))
             Write-Host "Подпись обновлений: ВКЛ"
           } else {
-            Write-Host "Подпись обновлений: ВЫКЛ (нет секрета) — релиз без авто-обновления"
+            Write-Host "Подпись обновлений: ВЫКЛ (нет секрета)"
           }
           Push-Location desktop
           npx --yes "@tauri-apps/cli@^2" build @extra
@@ -60,26 +66,24 @@ jobs:
           if (Test-Path $sig) {
             Copy-Item $sig $dist
             $version = (Get-Content desktop/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
-            $sigText = (Get-Content $sig -Raw).Trim()
-            $url = "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/$($setup.Name)"
+            $url = "https://github.com/${{ github.repository }}/releases/download/${{ inputs.tag }}/$($setup.Name)"
             $latest = [ordered]@{
               version   = $version
               notes     = "VPN $version"
               pub_date  = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
               platforms = [ordered]@{
-                "windows-x86_64" = [ordered]@{ signature = $sigText; url = $url }
+                "windows-x86_64" = [ordered]@{ signature = (Get-Content $sig -Raw).Trim(); url = $url }
               }
             }
             $latest | ConvertTo-Json -Depth 6 | Out-File -Encoding utf8 (Join-Path $dist "latest.json")
-            Write-Host "latest.json сформирован (авто-обновление включено)"
           }
           Get-ChildItem $dist | Select-Object Name, Length
 
       - name: Публикация релиза
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: VPN ${{ github.ref_name }}
+          tag_name: ${{ inputs.tag }}
+          name: VPN ${{ inputs.tag }}
           body: "Установщик — ниже. Установка без прав администратора."
           files: dist/*
           generate_release_notes: false
