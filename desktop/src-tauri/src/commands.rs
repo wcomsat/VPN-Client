@@ -43,11 +43,14 @@ fn subscription_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(dir.join("subscription.txt"))
 }
 
-/// Путь к ресурсу рядом с приложением (в сборке — resources, в dev — resources/).
+/// Путь к ресурсу. В установленной сборке Tauri кладёт `resources/*` в
+/// `<resource_dir>/resources/`, в dev — в `src-tauri/resources/`.
 fn resource(app: &AppHandle, name: &str) -> Result<PathBuf, String> {
-    if let Ok(p) = app.path().resolve(name, BaseDirectory::Resource) {
-        if p.exists() {
-            return Ok(p);
+    for rel in [name.to_string(), format!("resources/{name}")] {
+        if let Ok(p) = app.path().resolve(&rel, BaseDirectory::Resource) {
+            if p.exists() {
+                return Ok(p);
+            }
         }
     }
     let dev = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources").join(name);
