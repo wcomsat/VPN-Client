@@ -89,6 +89,7 @@ async function refresh() {
 
   const power = $("power");
   power.classList.toggle("on", S.running);
+  power.classList.toggle("off", !S.running);
   $("state").textContent = S.running ? "Подключено" : "Отключено";
   $("detail").textContent = S.running
     ? `${labelChannel(mapChannel(st.channel))} · ${st.mode === "tun" ? "TUN" : "Прокси"} · ${st.server}`
@@ -99,20 +100,26 @@ async function refresh() {
 async function connect() {
   if (!S.sub) { showSetup(); return; }
   $("err").textContent = "";
-  $("power").classList.add("busy");
+  const power = $("power");
+  power.classList.remove("disconnecting");
+  power.classList.add("connecting");
   try {
     await invoke("save_subscription", { text: S.sub });
     await invoke("connect", { subscription: S.sub, channel: S.channel, mode: S.mode });
   } catch (e) {
     $("err").textContent = String(e);
   }
-  $("power").classList.remove("busy");
+  setTimeout(() => power.classList.remove("connecting"), 900);
   await refresh();
 }
 
 async function disconnect() {
   $("err").textContent = "";
+  const power = $("power");
+  power.classList.remove("connecting");
+  power.classList.add("disconnecting");
   try { await invoke("disconnect"); } catch (e) { $("err").textContent = String(e); }
+  setTimeout(() => power.classList.remove("disconnecting"), 900);
   await refresh();
 }
 

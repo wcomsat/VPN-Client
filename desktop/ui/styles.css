@@ -88,20 +88,71 @@ textarea:focus { border-color: var(--blue); }
 .power {
   width: 132px; height: 132px; border-radius: 50%;
   border: 1px solid var(--line);
-  background: radial-gradient(circle at 50% 35%, #1d2634, #12171f);
-  color: var(--muted);
+  background: radial-gradient(circle at 50% 35%, #241416, #140b0c);
+  color: #fff;
   cursor: pointer; position: relative;
   display: flex; align-items: center; justify-content: center;
-  transition: transform .15s, box-shadow .25s, color .25s, background .25s;
+  isolation: isolate;
+  transition: transform .15s, background .3s;
 }
 .power:hover { transform: translateY(-1px); }
-.power.on {
-  color: #fff;
-  background: radial-gradient(circle at 50% 30%, #23c55e, #128a44);
-  box-shadow: 0 0 0 8px rgba(34, 197, 94, .12), 0 18px 40px rgba(34, 197, 94, .35);
+.power .power-icon { position: relative; z-index: 2; display: flex; }
+.power .wave {
+  position: absolute; inset: 0; border-radius: 50%;
+  opacity: 0; pointer-events: none; z-index: 1;
 }
-.power.busy { color: var(--blue); animation: pulse 1s infinite; }
-@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .55; } }
+
+/* ВЫКЛЮЧЕНА — красный пульс */
+.power.off { animation: pulseRed 2.2s ease-in-out infinite; }
+@keyframes pulseRed {
+  0%,100% { box-shadow: 0 0 0 4px rgba(239,68,68,.06), 0 16px 36px rgba(239,68,68,.16); }
+  50%     { box-shadow: 0 0 0 13px rgba(239,68,68,.10), 0 16px 46px rgba(239,68,68,.38); }
+}
+
+/* ВКЛЮЧЕНА — зелёный пульс (кольцо на ободе) */
+.power.on {
+  background: radial-gradient(circle at 50% 30%, #23c55e, #0f7a3c);
+  animation: pulseGreen 2.2s ease-in-out infinite;
+}
+@keyframes pulseGreen {
+  0%,100% { box-shadow: 0 0 0 4px rgba(34,197,94,.12), 0 16px 36px rgba(34,197,94,.25); }
+  50%     { box-shadow: 0 0 0 14px rgba(34,197,94,.16), 0 16px 48px rgba(34,197,94,.45); }
+}
+
+/* Клик ВКЛ: зелёный «взрыв» от центра к ободу, затем пульс на ободе */
+.power.connecting .wave-green {
+  background: radial-gradient(circle,
+    rgba(34,197,94,.95) 0%, rgba(34,197,94,.55) 50%, rgba(34,197,94,0) 72%);
+  animation: waveOut .8s cubic-bezier(.2,.8,.2,1) forwards,
+             rimPulse .9s ease-in-out .8s infinite;
+}
+@keyframes waveOut {
+  0%   { transform: scale(.15); opacity: 1; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+@keyframes rimPulse {
+  0%,100% { box-shadow: inset 0 0 0 0 rgba(34,197,94,0); }
+  50%     { box-shadow: inset 0 0 0 6px rgba(34,197,94,.6); }
+}
+
+/* Клик ВЫКЛ: красное кольцо от обода к центру + мерцание */
+.power.disconnecting {
+  animation: flickerRed .8s linear infinite;
+}
+@keyframes flickerRed {
+  0%,100% { box-shadow: 0 0 0 6px rgba(239,68,68,.15), 0 16px 40px rgba(239,68,68,.45); }
+  50%     { box-shadow: 0 0 0 10px rgba(239,68,68,.05), 0 16px 30px rgba(239,68,68,.2); }
+}
+.power.disconnecting .wave-red {
+  background: radial-gradient(circle,
+    rgba(239,68,68,0) 46%, rgba(239,68,68,.9) 58%,
+    rgba(239,68,68,.9) 66%, rgba(239,68,68,0) 72%);
+  animation: waveIn .8s cubic-bezier(.4,0,.2,1) forwards;
+}
+@keyframes waveIn {
+  0%   { transform: scale(1);   opacity: 1; }
+  100% { transform: scale(.05); opacity: 0; }
+}
 
 .state { font-size: 20px; font-weight: 700; margin-top: 16px; }
 .detail { color: var(--muted); font-size: 13px; margin-top: 4px; text-align: center; min-height: 18px; }
