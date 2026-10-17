@@ -28,16 +28,58 @@ jobs:
         shell: pwsh
         run: pwsh tools/fetch-core.ps1
 
-      - name: Сборка и публикация релиза
-        uses: tauri-apps/tauri-action@v0
+      - name: Сборка установщика
+        shell: pwsh
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          $extra = @()
+          if ($env:TAURI_SIGNING_PRIVATE_KEY) {
+            '{"bundle":{"createUpdaterArtifacts":true}}' | Out-File -Encoding utf8 updater.json
+            $extra = @("--config", (Join-Path $PWD "updater.json"))
+            Write-Host "Подпись обновлений: ВКЛ"
+          } else {
+            Write-Host "Подпись обновлений: ВЫКЛ (нет секрета) — релиз без авто-обновления"
+          }
+          Push-Location desktop
+          npx --yes "@tauri-apps/cli@^2" build @extra
+          if ($LASTEXITCODE -ne 0) { throw "tauri build failed" }
+          Pop-Location
+
+      - name: Подготовка ассетов релиза
+        shell: pwsh
+        run: |
+          $nsis = "target/release/bundle/nsis"
+          $dist = "dist"
+          New-Item -ItemType Directory -Path $dist -Force | Out-Null
+          $setup = Get-ChildItem $nsis -Filter "*-setup.exe" | Select-Object -First 1
+          if (-not $setup) { throw "установщик не найден" }
+          Copy-Item $setup.FullName $dist
+          $sig = "$($setup.FullName).sig"
+          if (Test-Path $sig) {
+            Copy-Item $sig $dist
+            $version = (Get-Content desktop/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+            $sigText = (Get-Content $sig -Raw).Trim()
+            $url = "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/$($setup.Name)"
+            $latest = [ordered]@{
+              version   = $version
+              notes     = "VPN $version"
+              pub_date  = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+              platforms = [ordered]@{
+                "windows-x86_64" = [ordered]@{ signature = $sigText; url = $url }
+              }
+            }
+            $latest | ConvertTo-Json -Depth 6 | Out-File -Encoding utf8 (Join-Path $dist "latest.json")
+            Write-Host "latest.json сформирован (авто-обновление включено)"
+          }
+          Get-ChildItem $dist | Select-Object Name, Length
+
+      - name: Публикация релиза
+        uses: softprops/action-gh-release@v2
         with:
-          projectPath: desktop
-          tagName: ${{ github.ref_name }}
-          releaseName: VPN ${{ github.ref_name }}
-          releaseBody: "Установщик и файлы обновления — в ассетах ниже."
-          releaseDraft: false
-          prerelease: false
+          tag_name: ${{ github.ref_name }}
+          name: VPN ${{ github.ref_name }}
+          body: "Установщик — ниже. Установка без прав администратора."
+          files: dist/*
+          generate_release_notes: false
