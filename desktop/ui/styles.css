@@ -87,15 +87,29 @@ textarea:focus { border-color: var(--blue); }
 .powerwrap { display: flex; flex-direction: column; align-items: center; padding: 4px 0 12px; }
 .power {
   width: 132px; height: 132px; border-radius: 50%;
-  border: 1px solid var(--line);
-  background: radial-gradient(circle at 50% 35%, #241416, #140b0c);
+  border: 1px solid rgba(255,255,255,.06);
+  background: radial-gradient(circle at 50% 30%, #2a1517 0%, #180d0e 55%, #0c0708 100%);
   color: #fff;
   cursor: pointer; position: relative;
   display: flex; align-items: center; justify-content: center;
   isolation: isolate;
   transition: transform .15s, background .3s;
+  box-shadow:
+    0 18px 30px rgba(0,0,0,.5),
+    inset 0 -9px 18px rgba(0,0,0,.55),
+    inset 0 5px 12px rgba(255,255,255,.07);
 }
 .power:hover { transform: translateY(-1px); }
+
+/* Верхний блик — придаёт объём */
+.power::before {
+  content: "";
+  position: absolute; left: 16%; right: 16%; top: 7%; height: 40%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255,255,255,.30), rgba(255,255,255,0) 72%);
+  pointer-events: none; z-index: 1;
+}
+
 .power .power-icon { position: relative; z-index: 2; display: flex; }
 .power .wave {
   position: absolute; inset: 0; border-radius: 50%;
@@ -103,20 +117,40 @@ textarea:focus { border-color: var(--blue); }
 }
 
 /* ВЫКЛЮЧЕНА — красный пульс */
-.power.off { animation: pulseRed 2.2s ease-in-out infinite; }
+.power.off { animation: pulseRed 2.4s ease-in-out infinite; }
 @keyframes pulseRed {
-  0%,100% { box-shadow: 0 0 0 4px rgba(239,68,68,.06), 0 16px 36px rgba(239,68,68,.16); }
-  50%     { box-shadow: 0 0 0 13px rgba(239,68,68,.10), 0 16px 46px rgba(239,68,68,.38); }
+  0%,100% { box-shadow:
+    0 18px 30px rgba(0,0,0,.5),
+    inset 0 -9px 18px rgba(0,0,0,.55),
+    inset 0 5px 12px rgba(255,255,255,.07),
+    0 0 0 4px rgba(239,68,68,.06),
+    0 0 26px rgba(239,68,68,.12); }
+  50% { box-shadow:
+    0 18px 30px rgba(0,0,0,.5),
+    inset 0 -9px 18px rgba(0,0,0,.55),
+    inset 0 5px 12px rgba(255,255,255,.07),
+    0 0 0 14px rgba(239,68,68,.10),
+    0 0 36px rgba(239,68,68,.30); }
 }
 
-/* ВКЛЮЧЕНА — зелёный пульс (кольцо на ободе) */
+/* ВКЛЮЧЕНА — тёмно-зелёный с объёмом */
 .power.on {
-  background: radial-gradient(circle at 50% 30%, #23c55e, #0f7a3c);
-  animation: pulseGreen 2.2s ease-in-out infinite;
+  background: radial-gradient(circle at 50% 28%, #1e9a55 0%, #126c3a 52%, #093d21 100%);
+  animation: pulseGreen 2.4s ease-in-out infinite;
 }
 @keyframes pulseGreen {
-  0%,100% { box-shadow: 0 0 0 4px rgba(34,197,94,.12), 0 16px 36px rgba(34,197,94,.25); }
-  50%     { box-shadow: 0 0 0 14px rgba(34,197,94,.16), 0 16px 48px rgba(34,197,94,.45); }
+  0%,100% { box-shadow:
+    0 18px 30px rgba(0,0,0,.5),
+    inset 0 -9px 18px rgba(0,0,0,.5),
+    inset 0 5px 12px rgba(255,255,255,.10),
+    0 0 0 4px rgba(34,197,94,.10),
+    0 0 28px rgba(34,197,94,.22); }
+  50% { box-shadow:
+    0 18px 30px rgba(0,0,0,.5),
+    inset 0 -9px 18px rgba(0,0,0,.5),
+    inset 0 5px 12px rgba(255,255,255,.10),
+    0 0 0 14px rgba(34,197,94,.14),
+    0 0 40px rgba(34,197,94,.40); }
 }
 
 /* Клик ВКЛ: зелёный «взрыв» от центра к ободу, затем пульс на ободе */
@@ -132,16 +166,24 @@ textarea:focus { border-color: var(--blue); }
 }
 @keyframes rimPulse {
   0%,100% { box-shadow: inset 0 0 0 0 rgba(34,197,94,0); }
-  50%     { box-shadow: inset 0 0 0 6px rgba(34,197,94,.6); }
+  50%     { box-shadow: inset 0 0 0 7px rgba(34,197,94,.55); }
 }
 
 /* Клик ВЫКЛ: красное кольцо от обода к центру + мерцание */
-.power.disconnecting {
-  animation: flickerRed .8s linear infinite;
-}
+.power.disconnecting { animation: flickerRed .8s linear infinite; }
 @keyframes flickerRed {
-  0%,100% { box-shadow: 0 0 0 6px rgba(239,68,68,.15), 0 16px 40px rgba(239,68,68,.45); }
-  50%     { box-shadow: 0 0 0 10px rgba(239,68,68,.05), 0 16px 30px rgba(239,68,68,.2); }
+  0%,100% { box-shadow:
+    0 18px 30px rgba(0,0,0,.5),
+    inset 0 -9px 18px rgba(0,0,0,.5),
+    inset 0 5px 12px rgba(255,255,255,.07),
+    0 0 0 6px rgba(239,68,68,.16),
+    0 0 32px rgba(239,68,68,.34); }
+  50% { box-shadow:
+    0 18px 30px rgba(0,0,0,.5),
+    inset 0 -9px 18px rgba(0,0,0,.5),
+    inset 0 5px 12px rgba(255,255,255,.07),
+    0 0 0 10px rgba(239,68,68,.05),
+    0 0 20px rgba(239,68,68,.15); }
 }
 .power.disconnecting .wave-red {
   background: radial-gradient(circle,
