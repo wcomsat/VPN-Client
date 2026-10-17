@@ -1,8 +1,9 @@
 {
   "name": "vpn-desktop",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "VPN — Windows клиент (Tauri)"
 }
+
 
 
