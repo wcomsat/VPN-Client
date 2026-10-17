@@ -133,9 +133,10 @@ textarea:focus { border-color: var(--blue); }
     0 0 36px rgba(239,68,68,.30); }
 }
 
-/* ВКЛЮЧЕНА — тёмно-зелёный с объёмом */
+/* ВКЛЮЧЕНА — яркий центр, тёмные края, объём */
 .power.on {
-  background: radial-gradient(circle at 50% 28%, #1e9a55 0%, #126c3a 52%, #093d21 100%);
+  background: radial-gradient(circle at 50% 42%,
+    #6ff0a0 0%, #35d97e 30%, #1fb765 55%, #118a4c 78%, #084326 100%);
   animation: pulseGreen 2.4s ease-in-out infinite;
 }
 @keyframes pulseGreen {
@@ -149,8 +150,8 @@ textarea:focus { border-color: var(--blue); }
     0 18px 30px rgba(0,0,0,.5),
     inset 0 -9px 18px rgba(0,0,0,.5),
     inset 0 5px 12px rgba(255,255,255,.10),
-    0 0 0 14px rgba(34,197,94,.14),
-    0 0 40px rgba(34,197,94,.40); }
+    0 0 0 14px rgba(34,197,94,.18),
+    0 0 46px rgba(34,197,94,.52); }
 }
 
 /* Клик ВКЛ: зелёный «взрыв» от центра к ободу, затем пульс на ободе */
@@ -224,4 +225,5 @@ textarea:focus { border-color: var(--blue); }
   font-size: 12.5px; cursor: pointer; text-decoration: underline;
 }
 .link:hover { color: var(--text); }
+
 
