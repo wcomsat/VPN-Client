@@ -112,6 +112,12 @@ pub fn elevate(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+/// Скрыть окно в трей (без завершения приложения).
+#[tauri::command]
+pub fn hide_window(window: tauri::WebviewWindow) -> Result<(), String> {
+    window.hide().map_err(|e| e.to_string())
+}
+
 /// Подключение (общее для команды и трея).
 pub fn do_connect(
     app: &AppHandle,

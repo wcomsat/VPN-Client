@@ -1,4 +1,16 @@
 const { invoke } = window.__TAURI__.core;
+const tauriWindow = window.__TAURI__.window;
+
+// Перетаскивание окна за любую область, кроме интерактивных элементов.
+if (tauriWindow && tauriWindow.getCurrentWindow) {
+  document.addEventListener("mousedown", (e) => {
+    if (e.button !== 0) return;
+    if (e.detail > 1) return;
+    const t = e.target;
+    if (t.closest("button, a, input, textarea, select, option, [data-no-drag]")) return;
+    tauriWindow.getCurrentWindow().startDragging().catch(() => {});
+  });
+}
 
 const S = { sub: "", channels: [], channel: "", mode: "proxy", running: false, admin: false };
 
@@ -126,6 +138,8 @@ document.querySelectorAll("#modes .seg-btn").forEach((b) => {
 });
 
 $("edit").onclick = () => showSetup();
+
+$("winClose").onclick = () => { invoke("hide_window").catch(() => {}); };
 
 $("save").onclick = async () => {
   const text = $("sub").value.trim();

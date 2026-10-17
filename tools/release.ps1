@@ -91,7 +91,7 @@ try {
     $latest | ConvertTo-Json -Depth 6 | Out-File -Encoding utf8 (Join-Path $dist "latest.json")
 
     if (-not $NoGit) {
-        git add Cargo.toml Cargo.lock desktop/src-tauri/tauri.conf.json desktop/package.json
+        git add -A
         git commit -m "release: v$ver" --allow-empty | Out-Null
         git tag -f -a $tag -m "VPN $tag"
         git push origin main

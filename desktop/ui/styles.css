@@ -10,23 +10,45 @@
   --red: #ef4444;
 }
 * { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; }
+html, body { height: 100%; margin: 0; overflow: hidden; }
 body {
   background: radial-gradient(1000px 520px at 50% -12%, #1a2740, var(--bg));
   color: var(--text);
   font-family: system-ui, "Segoe UI", Roboto, sans-serif;
   user-select: none;
+  display: flex;
+  justify-content: center;
+  padding: 0;
 }
 .app {
   width: 100%;
   max-width: 400px;
+  height: 100vh;
   margin: 0 auto;
-  padding: 18px 18px 22px;
-  min-height: 100%;
+  padding: 10px 18px 12px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
-.head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.headtext { flex: 1; min-width: 0; }
+[data-tauri-drag-region] { cursor: move; }
+.winbtn {
+  flex: 0 0 auto;
+  width: 28px; height: 28px;
+  border: 0; border-radius: 8px;
+  background: transparent; color: var(--muted);
+  font-size: 14px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.winbtn:hover { background: #242c38; color: #fff; }
 .logo {
   width: 40px; height: 40px; border-radius: 12px;
   background: linear-gradient(135deg, #2563eb, #3b82f6);
@@ -62,7 +84,7 @@ textarea:focus { border-color: var(--blue); }
 .err { color: #fca5a5; font-size: 12.5px; margin-top: 10px; min-height: 1em; white-space: pre-wrap; }
 
 /* ГЛАВНЫЙ ЭКРАН */
-.powerwrap { display: flex; flex-direction: column; align-items: center; padding: 8px 0 16px; }
+.powerwrap { display: flex; flex-direction: column; align-items: center; padding: 4px 0 12px; }
 .power {
   width: 132px; height: 132px; border-radius: 50%;
   border: 1px solid var(--line);
@@ -84,7 +106,7 @@ textarea:focus { border-color: var(--blue); }
 .state { font-size: 20px; font-weight: 700; margin-top: 16px; }
 .detail { color: var(--muted); font-size: 13px; margin-top: 4px; text-align: center; min-height: 18px; }
 
-.group { margin-top: 14px; }
+.group { margin-top: 12px; }
 .group-title { color: var(--muted); font-size: 12px; margin-bottom: 7px; }
 .seg {
   display: flex; gap: 6px; background: #10151d;
@@ -109,3 +131,4 @@ textarea:focus { border-color: var(--blue); }
   font-size: 12.5px; cursor: pointer; text-decoration: underline;
 }
 .link:hover { color: var(--text); }
+

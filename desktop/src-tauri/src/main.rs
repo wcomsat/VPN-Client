@@ -49,6 +49,7 @@ fn main() {
             commands::connect,
             commands::disconnect,
             commands::elevate,
+            commands::hide_window,
         ])
         .setup(|app| {
             // Убрать «зависшие» настройки от прошлого запуска.
