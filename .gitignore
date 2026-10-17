@@ -42,3 +42,6 @@ bundle/
 *~
 .DS_Store
 Thumbs.db
+
+# локальный оверрайд для сборки с подписью
+/updater.json
