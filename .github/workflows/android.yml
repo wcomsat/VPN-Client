@@ -1,0 +1,55 @@
+name: android
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "android/**"
+      - "tools/fetch-core-android.*"
+      - ".github/workflows/android.yml"
+  pull_request:
+    paths:
+      - "android/**"
+      - "tools/fetch-core-android.*"
+      - ".github/workflows/android.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Android SDK
+        run: |
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Ядро туннеля (Xray + tun2socks)
+        run: |
+          chmod +x tools/fetch-core-android.sh
+          ./tools/fetch-core-android.sh
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Тесты и сборка APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew testDebugUnitTest assembleDebug --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vpn-android-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

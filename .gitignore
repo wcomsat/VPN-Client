@@ -40,6 +40,17 @@ dist/
 *.tar.gz
 bundle/
 
+# --- Android ---------------------------------------------------------------
+/android/.gradle/
+/android/build/
+/android/app/build/
+/android/local.properties
+/android/app/src/main/jniLibs/**/libxray.so
+/android/app/src/main/jniLibs/**/libtun2socks.so
+/android/app/src/main/assets/xray/*.dat
+*.apk
+*.aab
+
 # --- IDE/ОС ----------------------------------------------------------------
 .idea/
 .vscode/

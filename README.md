@@ -4,7 +4,8 @@
 и весь трафик идёт через ваш сервер. Современный интерфейс, простое приложение,
 установщик и авто-обновления.
 
-Сейчас поддерживаются **Windows** и **macOS (Apple Silicon)**. Android — в плане.
+Поддерживаются **Windows**, **macOS (Apple Silicon)** и **Android** (телефоны,
+планшеты, Android TV).
 
 ## Стек
 
@@ -14,7 +15,9 @@
 - Внешнее ядро туннеля: **Xray-core** (MPL-2.0) + **tun2socks** (MIT).
   - Windows: `xray.exe`, `tun2socks.exe`, **WinTun** (`wintun.dll`).
   - macOS: `xray`, `tun2socks`, системный `utun`.
-- Фронтенд — обычные HTML/CSS/JS (без сборщиков), в каталоге [`desktop/ui`](desktop/ui).
+  - Android: `xray`/`tun2socks` как `libxray.so`/`libtun2socks.so`, TUN от `VpnService`.
+- UI: HTML/CSS/JS на десктопе ([`desktop/ui`](desktop/ui)),
+  Kotlin + Compose на Android ([`android/`](android)).
 
 Используются только permissive-лицензии (см. [NOTICE](NOTICE)).
 
@@ -23,6 +26,7 @@
 ```
 core/     Rust-крейт: парсер vless:// + генератор конфига Xray (общий для платформ)
 desktop/  Приложение (Tauri v2): ui/ (фронтенд) + src-tauri/ (Rust)
+android/  Android-клиент (Kotlin + Compose, VpnService)
 shared/   Контракт подписки и тест-фикстуры (vless -> конфиг ядра)
 tools/    Загрузка ядра туннеля и локальный релиз
 ```
@@ -35,6 +39,8 @@ tools/    Загрузка ядра туннеля и локальный рел�
 - **TUN** — весь трафик через туннель (нужны права администратора).
   - Windows: WinTun + tun2socks.
   - macOS: `utun` + tun2socks, пароль запрашивается при подключении и отключении.
+- **Android** — всегда TUN через `VpnService`; само приложение исключено из
+  туннеля, чтобы Xray/tun2socks не зацикливались.
 
 ## Разработка
 
@@ -51,10 +57,28 @@ npx @tauri-apps/cli dev                   # запуск приложения
 npx @tauri-apps/cli build                 # установщик / DMG
 ```
 
+### Android
+
+Нужен JDK 17 и Android SDK 35.
+
+```bash
+bash tools/fetch-core-android.sh          # или pwsh tools/fetch-core-android.ps1
+cd android
+./gradlew testDebugUnitTest assembleDebug
+```
+
+APK: `android/app/build/outputs/apk/debug/app-debug.apk`.
+Поддержка ABI: `arm64-v8a` и `x86_64`. CI —
+[`.github/workflows/android.yml`](.github/workflows/android.yml).
+
+Парсер `vless://` и генератор конфига продублированы на Kotlin и покрыты
+тестами; контракт совпадает с `shared/fixtures`.
+
 Готовые артефакты:
 
 - Windows: `target/release/bundle/nsis/VPN_<версия>_x64-setup.exe`;
-- macOS: `target/release/bundle/dmg/VPN_<версия>_aarch64.dmg`.
+- macOS: `target/release/bundle/dmg/VPN_<версия>_aarch64.dmg`;
+- Android: `android/app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Релиз и авто-обновление
 
@@ -84,6 +108,9 @@ npx @tauri-apps/cli build                 # установщик / DMG
   в **Applications**. Сборка не подписана Apple: при первом запуске —
   правый клик по приложению → **Открыть** (или «Системные настройки →
   Конфиденциальность и безопасность → Всё равно открыть»).
+- **Android (телефон/TV):** скачать `app-debug.apk` из артефакта CI
+  (Actions → android) и установить, разрешив установку из неизвестных
+  источников. На Android TV — тот же APK (есть D-pad и `LEANBACK_LAUNCHER`).
 
 ## План
 
@@ -92,9 +119,10 @@ npx @tauri-apps/cli build                 # установщик / DMG
 3. **M2** — логика Windows: ядро, прокси, TUN, состояние. ✅
 4. **M3** — современный интерфейс. ✅
 5. **M4** — установщик, иконка, ярлык. ✅
-6. **M5** — авто-обновление и CI. ✅ (Windows)
+6. **M5** — авто-обновление и CI. ✅ (Windows, macOS)
 7. **M6** — macOS Apple Silicon: прокси + TUN, DMG. ✅
-8. **M7** — Android (Kotlin `VpnService` + Compose + общее Rust-ядро).
+8. **M7** — Android: Kotlin + Compose, `VpnService`, Xray + tun2socks, APK. ✅
+   (базовая версия; release-подпись и авто-обновление — следующий шаг)
 
 ## Лицензия
 

@@ -27,3 +27,6 @@
 - **WinTun** — исходники драйвера GPL-2.0, но официальные подписанные
   `wintun.dll` распространяются по отдельной лицензии prebuilt binaries,
   допускающей поставку вместе с приложением. Поставляем только DLL.
+- **Android** — те же Xray-core (MPL-2.0) и tun2socks (MIT) поставляются
+  как `libxray.so`/`libtun2socks.so` и запускаются отдельными процессами
+  из `nativeLibraryDir`; TUN предоставляет системный `VpnService`.
