@@ -1,7 +1,7 @@
 name: release-macos
 
-# Сборка macOS-версии (Apple Silicon) и загрузка DMG в GitHub Release.
-# Запускается на тег v* или вручную для существующего тега.
+# Сборка macOS-версии (Apple Silicon) и загрузка DMG + артефакта обновления
+# в GitHub Release. Запускается на тег v* или вручную для существующего тега.
 on:
   workflow_dispatch:
     inputs:
@@ -33,9 +33,21 @@ jobs:
           chmod +x tools/fetch-core.sh
           ./tools/fetch-core.sh
 
-      - name: Сборка DMG
+      - name: Сборка DMG и артефакта обновления
         working-directory: desktop
-        run: npx --yes "@tauri-apps/cli@^2" build
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          EXTRA=""
+          if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo '{"bundle":{"createUpdaterArtifacts":true}}' > updater.json
+            EXTRA="--config $(pwd)/updater.json"
+            echo "Подпись обновлений: ВКЛ"
+          else
+            echo "Подпись обновлений: ВЫКЛ (нет секрета)"
+          fi
+          npx --yes "@tauri-apps/cli@^2" build $EXTRA
 
       - name: Подготовка ассетов
         id: assets
@@ -47,13 +59,57 @@ jobs:
           echo "ver=$VER" >> "$GITHUB_OUTPUT"
           echo "file=$OUT" >> "$GITHUB_OUTPUT"
 
+          UP=$(ls target/release/bundle/macos/*.app.tar.gz 2>/dev/null | head -n 1 || true)
+          if [ -n "$UP" ] && [ -f "$UP.sig" ]; then
+            UPOUT="VPN_${VER}_aarch64.app.tar.gz"
+            cp "$UP" "$UPOUT"
+            cp "$UP.sig" "$UPOUT.sig"
+            echo "updater=$UPOUT" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Публикация релиза
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${{ inputs.tag || github.ref_name }}"
+          FILES=( "${{ steps.assets.outputs.file }}" )
+          if [ -n "${{ steps.assets.outputs.updater }}" ]; then
+            FILES+=( "${{ steps.assets.outputs.updater }}" "${{ steps.assets.outputs.updater }}.sig" )
+          fi
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
             gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
               --title "VPN $TAG" --notes "VPN ${{ steps.assets.outputs.ver }}"
-          gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" \
-            --clobber "${{ steps.assets.outputs.file }}"
+          gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber "${FILES[@]}"
+
+      - name: latest.json (darwin-aarch64)
+        if: ${{ steps.assets.outputs.updater != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+          VER: ${{ steps.assets.outputs.ver }}
+          ASSET: ${{ steps.assets.outputs.updater }}
+        run: |
+          BASE="https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG"
+          if curl -fsSL "$BASE/latest.json" -o prev.json; then
+            :
+          else
+            echo '{"platforms":{}}' > prev.json
+          fi
+          URL="$BASE/$ASSET"
+          SIG="$(cat "$ASSET.sig")" URL="$URL" VER="$VER" node -e '
+            const fs = require("fs");
+            const cur = JSON.parse(fs.readFileSync("prev.json", "utf8"));
+            const platforms = cur.platforms || {};
+            platforms["darwin-aarch64"] = {
+              signature: process.env.SIG.trim(),
+              url: process.env.URL,
+            };
+            const out = {
+              version: process.env.VER,
+              notes: "VPN " + process.env.VER,
+              pub_date: new Date().toISOString(),
+              platforms,
+            };
+            fs.writeFileSync("latest.json", JSON.stringify(out, null, 2) + "\n");
+          '
+          gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber latest.json

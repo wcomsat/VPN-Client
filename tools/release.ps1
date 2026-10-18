@@ -77,18 +77,33 @@ try {
     Copy-Item $sigPath $dist
 
     $url = "https://github.com/$RepoSlug/releases/download/$tag/$($setup.Name)"
+
+    # Сохраняем платформы (macOS), уже добавленные в latest.json этого же тега,
+    # чтобы релиз Windows не затёр запись darwin-aarch64.
+    $platforms = [ordered]@{}
+    $prev = Join-Path $env:TEMP ("latest-" + [guid]::NewGuid().ToString("N") + ".json")
+    try {
+        Invoke-WebRequest "https://github.com/$RepoSlug/releases/download/$tag/latest.json" -OutFile $prev -UseBasicParsing
+        $old = Get-Content $prev -Raw | ConvertFrom-Json
+        if ($old.platforms) {
+            foreach ($p in $old.platforms.PSObject.Properties) {
+                if ($p.Name -ne "windows-x86_64") { $platforms[$p.Name] = $p.Value }
+            }
+        }
+    } catch { }
+    finally { Remove-Item $prev -ErrorAction SilentlyContinue }
+
+    $platforms["windows-x86_64"] = [ordered]@{
+        signature = (Get-Content $sigPath -Raw).Trim()
+        url       = $url
+    }
     $latest = [ordered]@{
         version   = $ver
         notes     = "VPN $ver"
         pub_date  = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-        platforms = [ordered]@{
-            "windows-x86_64" = [ordered]@{
-                signature = (Get-Content $sigPath -Raw).Trim()
-                url       = $url
-            }
-        }
+        platforms = $platforms
     }
-    $latest | ConvertTo-Json -Depth 6 | Out-File -Encoding utf8 (Join-Path $dist "latest.json")
+    $latest | ConvertTo-Json -Depth 8 | Out-File -Encoding utf8 (Join-Path $dist "latest.json")
 
     if (-not $NoGit) {
         git add -A

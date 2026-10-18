@@ -58,15 +58,18 @@ npx @tauri-apps/cli build                 # установщик / DMG
 
 ## Релиз и авто-обновление
 
-Обновления раздаются через GitHub Releases. Windows-клиент при запуске проверяет
+Обновления раздаются через GitHub Releases. Клиент при запуске проверяет
 `latest.json` и при наличии обновления ставит его сам.
 
 - Windows: релиз собирается локально — `pwsh tools/release.ps1 -Version x.y.z`.
 - macOS: workflow [`.github/workflows/release-macos.yml`](.github/workflows/release-macos.yml)
-  собирает DMG на `macos-14` и загружает его в тот же релиз (тег `v*`).
-  Авто-обновление macOS пока не подключено: обновление вручную через новый DMG.
+  собирает DMG и артефакт обновления (`VPN.app.tar.gz`) на `macos-14`
+  и загружает их в тот же релиз (тег `v*`).
 
-Для подписи обновлений Windows в настройках репозитория (Secrets) задайте:
+Обе платформы используют общий `latest.json`: при сборке релиза записи
+`windows-x86_64` и `darwin-aarch64` объединяются, а не затирают друг друга.
+
+Для подписи обновлений (Windows и macOS) в настройках репозитория (Secrets) задайте:
 
 - `TAURI_SIGNING_PRIVATE_KEY` — содержимое приватного ключа;
 - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` — пароль ключа.

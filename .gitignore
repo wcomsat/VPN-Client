@@ -50,6 +50,7 @@ Thumbs.db
 
 # локальный оверрайд для сборки с подписью
 /updater.json
+/desktop/updater.json
 
 # ассеты локального релиза
 /dist-release/

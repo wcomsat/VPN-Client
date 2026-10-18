@@ -67,15 +67,28 @@ jobs:
             Copy-Item $sig $dist
             $version = (Get-Content desktop/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
             $url = "https://github.com/${{ github.repository }}/releases/download/${{ inputs.tag }}/$($setup.Name)"
+
+            $platforms = [ordered]@{}
+            $prev = Join-Path $env:TEMP "latest-prev.json"
+            try {
+              Invoke-WebRequest "https://github.com/${{ github.repository }}/releases/download/${{ inputs.tag }}/latest.json" -OutFile $prev -UseBasicParsing
+              $old = Get-Content $prev -Raw | ConvertFrom-Json
+              if ($old.platforms) {
+                foreach ($p in $old.platforms.PSObject.Properties) {
+                  if ($p.Name -ne "windows-x86_64") { $platforms[$p.Name] = $p.Value }
+                }
+              }
+            } catch { }
+            finally { Remove-Item $prev -ErrorAction SilentlyContinue }
+
+            $platforms["windows-x86_64"] = [ordered]@{ signature = (Get-Content $sig -Raw).Trim(); url = $url }
             $latest = [ordered]@{
               version   = $version
               notes     = "VPN $version"
               pub_date  = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-              platforms = [ordered]@{
-                "windows-x86_64" = [ordered]@{ signature = (Get-Content $sig -Raw).Trim(); url = $url }
-              }
+              platforms = $platforms
             }
-            $latest | ConvertTo-Json -Depth 6 | Out-File -Encoding utf8 (Join-Path $dist "latest.json")
+            $latest | ConvertTo-Json -Depth 8 | Out-File -Encoding utf8 (Join-Path $dist "latest.json")
           }
           Get-ChildItem $dist | Select-Object Name, Length
 
