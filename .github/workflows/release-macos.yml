@@ -1,0 +1,59 @@
+name: release-macos
+
+# Сборка macOS-версии (Apple Silicon) и загрузка DMG в GitHub Release.
+# Запускается на тег v* или вручную для существующего тега.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Тег релиза (например v1.0.10)"
+        required: true
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+
+      - name: Ядро туннеля (Xray + tun2socks)
+        run: |
+          chmod +x tools/fetch-core.sh
+          ./tools/fetch-core.sh
+
+      - name: Сборка DMG
+        working-directory: desktop
+        run: npx --yes "@tauri-apps/cli@^2" build
+
+      - name: Подготовка ассетов
+        id: assets
+        run: |
+          VER=$(node -p "require('./desktop/src-tauri/tauri.conf.json').version")
+          DMG=$(ls target/release/bundle/dmg/*.dmg | head -n 1)
+          OUT="VPN_${VER}_aarch64.dmg"
+          cp "$DMG" "$OUT"
+          echo "ver=$VER" >> "$GITHUB_OUTPUT"
+          echo "file=$OUT" >> "$GITHUB_OUTPUT"
+
+      - name: Публикация релиза
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ inputs.tag || github.ref_name }}"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --title "VPN $TAG" --notes "VPN ${{ steps.assets.outputs.ver }}"
+          gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --clobber "${{ steps.assets.outputs.file }}"

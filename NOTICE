@@ -18,6 +18,7 @@
 | [Xray-core](https://github.com/XTLS/Xray-core) | VLESS + REALITY (xHTTP / Vision) | MPL-2.0 |
 | [xjasonlyu/tun2socks](https://github.com/xjasonlyu/tun2socks) | маршрутизация TUN → SOCKS | MIT |
 | [WinTun](https://www.wintun.net/) (prebuilt DLL) | TUN-драйвер Windows | см. prebuilt-binaries-license |
+| macOS `utun` | TUN-интерфейс macOS (в составе системы) | — |
 
 ## Примечания
 

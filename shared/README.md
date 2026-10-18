@@ -1,8 +1,8 @@
 # shared — общий контракт
 
-Здесь описано, как обе платформы (Android и Windows) интерпретируют подписку.
-Логика одна, реализации две, поэтому результат проверяется **одними и теми же
-фикстурами**.
+Здесь описано, как все платформы (Windows, macOS, Android) интерпретируют
+подписку. Логика одна, реализации разные, поэтому результат проверяется
+**одними и теми же фикстурами**.
 
 ## Что такое подписка
 
@@ -14,7 +14,7 @@ vless://UUID@IP:443  ?encryption=none&security=reality&sni=SNI&fp=firefox&pbk=PU
 vless://UUID@IP:8443 ?encryption=none&security=reality&sni=SNI&fp=firefox&pbk=PUBKEY&sid=SHORTID&type=tcp&flow=xtls-rprx-vision#name-vision
 ```
 
-- **xhttp** — основной канал (Android/Windows/desktop); `mode=stream-one`.
+- **xhttp** — основной канал (Windows/macOS/Android); `mode=stream-one`.
 - **tcp + flow=xtls-rprx-vision** — резервный канал; обязателен для iOS, полезен
   всем при деградации основного.
 

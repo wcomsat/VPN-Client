@@ -1,12 +1,15 @@
-//! Запуск встроенного ядра Xray-core (`xray.exe`).
+//! Запуск встроенного ядра Xray-core (`xray` / `xray.exe`).
 
 use std::fs;
-use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command};
 
 use serde_json::Value;
 
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
+
+#[cfg(windows)]
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 /// Запущенное ядро Xray в комплекте с временным конфигом.
@@ -30,24 +33,34 @@ impl XrayProc {
         let out = fs::File::create(&log_path).map_err(|e| e.to_string())?;
         let err = out.try_clone().map_err(|e| e.to_string())?;
 
-        // geoip.dat/geosite.dat лежат рядом с xray.exe — Xray должен их найти.
+        // geoip.dat/geosite.dat лежат рядом с xray — Xray должен их найти.
         let asset_dir = xray
             .parent()
             .map(|p| p.to_path_buf())
             .unwrap_or_else(|| PathBuf::from("."));
 
-        let child = Command::new(xray)
-            .arg("run")
+        #[cfg(unix)]
+        ensure_executable(xray);
+
+        let mut cmd = Command::new(xray);
+        cmd.arg("run")
             .arg("-c")
             .arg(&cfg_path)
             .env("XRAY_LOCATION_ASSET", &asset_dir)
             .stdout(out)
-            .stderr(err)
-            .creation_flags(CREATE_NO_WINDOW)
+            .stderr(err);
+        #[cfg(windows)]
+        cmd.creation_flags(CREATE_NO_WINDOW);
+
+        let child = cmd
             .spawn()
             .map_err(|e| format!("не удалось запустить ядро: {e}"))?;
 
-        Ok(XrayProc { child, cfg_path, log_path })
+        Ok(XrayProc {
+            child,
+            cfg_path,
+            log_path,
+        })
     }
 
     pub fn log_path(&self) -> &Path {
@@ -69,5 +82,17 @@ impl XrayProc {
 impl Drop for XrayProc {
     fn drop(&mut self) {
         self.stop();
+    }
+}
+
+#[cfg(unix)]
+fn ensure_executable(p: &Path) {
+    use std::os::unix::fs::PermissionsExt;
+    if let Ok(meta) = fs::metadata(p) {
+        let mut perm = meta.permissions();
+        if perm.mode() & 0o111 == 0 {
+            perm.set_mode(perm.mode() | 0o755);
+            let _ = fs::set_permissions(p, perm);
+        }
     }
 }

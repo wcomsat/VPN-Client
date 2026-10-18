@@ -18,7 +18,9 @@ keystore.properties
 desktop/src-tauri/gen/
 # встроенное ядро (скачивается скриптом перед сборкой)
 desktop/src-tauri/resources/xray.exe
+desktop/src-tauri/resources/xray
 desktop/src-tauri/resources/tun2socks.exe
+desktop/src-tauri/resources/tun2socks
 desktop/src-tauri/resources/wintun.dll
 desktop/src-tauri/resources/geoip.dat
 desktop/src-tauri/resources/geosite.dat
@@ -33,6 +35,9 @@ dist/
 *.dll
 *.pdb
 *.zip
+*.dmg
+*.app
+*.tar.gz
 bundle/
 
 # --- IDE/ОС ----------------------------------------------------------------

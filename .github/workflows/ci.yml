@@ -20,3 +20,16 @@ jobs:
         run: cargo clippy --workspace --all-targets
       - name: Сборка приложения (без бандла)
         run: cargo build -p vpn-desktop
+
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+      - name: Проверка сборки (macOS, Apple Silicon)
+        run: cargo check -p vpn-desktop --all-targets

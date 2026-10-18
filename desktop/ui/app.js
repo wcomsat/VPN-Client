@@ -12,7 +12,7 @@ if (tauriWindow && tauriWindow.getCurrentWindow) {
   });
 }
 
-const S = { sub: "", channels: [], channel: "", mode: "proxy", running: false, admin: false };
+const S = { sub: "", channels: [], channel: "", mode: "proxy", running: false, admin: false, platform: "" };
 
 const $ = (id) => document.getElementById(id);
 
@@ -29,6 +29,7 @@ async function init() {
   $("sub").value = S.sub;
   const st = await invoke("get_status");
   S.admin = st.admin;
+  S.platform = st.platform;
   if (!S.sub) { showSetup(); return; }
   await rebuildChannels();
   showMain();
@@ -71,12 +72,19 @@ function renderModes() {
     }
   });
   const hint = $("mode-hint");
+  const isMac = S.platform === "macos";
   if (S.mode === "tun") {
-    hint.textContent = S.admin
-      ? "TUN — весь трафик через VPN (включая игры и UDP)."
-      : "TUN — весь трафик, но нужны права администратора. Нажмите TUN, чтобы перезапустить.";
+    if (isMac) {
+      hint.textContent = "TUN — весь трафик через VPN (включая игры и UDP). macOS запросит пароль администратора.";
+    } else {
+      hint.textContent = S.admin
+        ? "TUN — весь трафик через VPN (включая игры и UDP)."
+        : "TUN — весь трафик, но нужны права администратора. Нажмите TUN, чтобы перезапустить.";
+    }
   } else {
-    hint.textContent = "Прокси — браузеры и приложения. Без прав администратора.";
+    hint.textContent = isMac
+      ? "Прокси — браузеры и приложения. macOS запросит пароль администратора."
+      : "Прокси — браузеры и приложения. Без прав администратора.";
   }
 }
 
@@ -85,6 +93,7 @@ async function refresh() {
   try { st = await invoke("get_status"); } catch { return; }
   S.running = st.running;
   S.admin = st.admin;
+  if (st.platform) S.platform = st.platform;
   if (st.mode) S.mode = st.mode;
 
   const power = $("power");
@@ -157,6 +166,7 @@ $("save").onclick = async () => {
     S.sub = text;
     const st = await invoke("get_status");
     S.admin = st.admin;
+    S.platform = st.platform;
     await rebuildChannels();
     if (!S.channels.length) throw new Error("Не удалось разобрать подписку — проверьте ссылки");
     showMain();

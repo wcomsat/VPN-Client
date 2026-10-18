@@ -12,6 +12,15 @@ use crate::coreproc::XrayProc;
 use crate::state::{AppState, HTTP_PORT, SOCKS_PORT};
 use crate::{proxy, tun};
 
+#[cfg(windows)]
+const XRAY_BIN: &str = "xray.exe";
+#[cfg(not(windows))]
+const XRAY_BIN: &str = "xray";
+#[cfg(windows)]
+const TUN2SOCKS_BIN: &str = "tun2socks.exe";
+#[cfg(not(windows))]
+const TUN2SOCKS_BIN: &str = "tun2socks";
+
 #[derive(serde::Serialize)]
 pub struct Status {
     pub running: bool,
@@ -19,6 +28,7 @@ pub struct Status {
     pub channel: String,
     pub server: String,
     pub admin: bool,
+    pub platform: String,
 }
 
 #[tauri::command]
@@ -30,15 +40,13 @@ pub fn get_status(mgr: State<AppState>) -> Status {
         channel: i.channel.clone(),
         server: i.server.clone(),
         admin: tun::is_admin(),
+        platform: std::env::consts::OS.to_string(),
     }
 }
 
 /// Файл подписки — в каталоге конфигурации приложения.
 fn subscription_path(app: &AppHandle) -> Result<PathBuf, String> {
-    let dir = app
-        .path()
-        .app_config_dir()
-        .map_err(|e| e.to_string())?;
+    let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     Ok(dir.join("subscription.txt"))
 }
@@ -53,7 +61,9 @@ fn resource(app: &AppHandle, name: &str) -> Result<PathBuf, String> {
             }
         }
     }
-    let dev = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources").join(name);
+    let dev = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("resources")
+        .join(name);
     if dev.exists() {
         return Ok(dev);
     }
@@ -81,7 +91,11 @@ pub fn parse_channels(text: String) -> Result<Vec<String>, String> {
     let chans = parse_subscription(&text)?;
     let mut names = Vec::new();
     for c in chans {
-        let n = if c.transport == "tcp" { "vision".to_string() } else { c.transport.clone() };
+        let n = if c.transport == "tcp" {
+            "vision".to_string()
+        } else {
+            c.transport.clone()
+        };
         if !names.contains(&n) {
             names.push(n);
         }
@@ -136,7 +150,7 @@ pub fn do_connect(
     let channels = parse_subscription(subscription)?;
     let ch = pick_channel(&channels, channel)?;
     let cfg = build_core_config(&ch, SOCKS_PORT, HTTP_PORT);
-    let xray = resource(app, "xray.exe")?;
+    let xray = resource(app, XRAY_BIN)?;
     let mut proc = XrayProc::start(&xray, &cfg)?;
 
     if !wait_port(SOCKS_PORT, Duration::from_secs(10)) {
@@ -157,7 +171,11 @@ pub fn do_connect(
             i.mode = "proxy".into();
             i.channel = ch.transport.clone();
             i.server = ch.address.clone();
-            i.last = Some((subscription.to_string(), channel.to_string(), mode.to_string()));
+            i.last = Some((
+                subscription.to_string(),
+                channel.to_string(),
+                mode.to_string(),
+            ));
             Ok(())
         }
         "tun" => {
@@ -166,7 +184,7 @@ pub fn do_connect(
                 return Err("режим TUN требует прав администратора".into());
             }
             let server_ip = resolve_ipv4(&ch.address)?;
-            let tun2socks = resource(app, "tun2socks.exe")?;
+            let tun2socks = resource(app, TUN2SOCKS_BIN)?;
             match tun::start(&tun2socks, &format!("127.0.0.1:{SOCKS_PORT}"), &server_ip) {
                 Ok(sess) => {
                     let mut i = mgr.inner.lock().unwrap();
@@ -176,7 +194,11 @@ pub fn do_connect(
                     i.mode = "tun".into();
                     i.channel = ch.transport.clone();
                     i.server = ch.address.clone();
-                    i.last = Some((subscription.to_string(), channel.to_string(), mode.to_string()));
+                    i.last = Some((
+                        subscription.to_string(),
+                        channel.to_string(),
+                        mode.to_string(),
+                    ));
                     Ok(())
                 }
                 Err(e) => {
@@ -285,4 +307,3 @@ fn resolve_ipv4(host: &str) -> Result<String, String> {
     }
     Err(format!("у {host} нет IPv4-адреса"))
 }
-

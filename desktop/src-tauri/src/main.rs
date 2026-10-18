@@ -1,8 +1,10 @@
 // По умолчанию скрываем консоль в релизной сборке (приложение с окном).
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![cfg_attr(all(not(debug_assertions), windows), windows_subsystem = "windows")]
 
 mod commands;
 mod coreproc;
+#[cfg(target_os = "macos")]
+mod macos;
 mod proxy;
 mod selftest;
 mod state;
@@ -27,6 +29,9 @@ fn main() {
     let default_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
         proxy::disable_if_ours(&format!("127.0.0.1:{}", state::HTTP_PORT));
+        // На macOS уборка TUN требует прав администратора — не показываем
+        // запрос пароля во время паники. Маркер подчистится при следующем запуске.
+        #[cfg(windows)]
         tun::cleanup_leftovers();
         default_hook(info);
     }));
@@ -84,4 +89,3 @@ fn main() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
-
