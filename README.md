@@ -89,6 +89,8 @@ APK: `android/app/build/outputs/apk/debug/app-debug.apk`.
 - macOS: workflow [`.github/workflows/release-macos.yml`](.github/workflows/release-macos.yml)
   собирает DMG и артефакт обновления (`VPN.app.tar.gz`) на `macos-14`
   и загружает их в тот же релиз (тег `v*`).
+- Android: workflow [`.github/workflows/android-release.yml`](.github/workflows/android-release.yml)
+  собирает APK на тег `v*` и прикрепляет его к релизу (пока debug-подпись).
 
 Обе платформы используют общий `latest.json`: при сборке релиза записи
 `windows-x86_64` и `darwin-aarch64` объединяются, а не затирают друг друга.
@@ -108,9 +110,10 @@ APK: `android/app/build/outputs/apk/debug/app-debug.apk`.
   в **Applications**. Сборка не подписана Apple: при первом запуске —
   правый клик по приложению → **Открыть** (или «Системные настройки →
   Конфиденциальность и безопасность → Всё равно открыть»).
-- **Android (телефон/TV):** скачать `app-debug.apk` из артефакта CI
-  (Actions → android) и установить, разрешив установку из неизвестных
-  источников. На Android TV — тот же APK (есть D-pad и `LEANBACK_LAUNCHER`).
+- **Android (телефон/TV):** скачать `VPN_<версия>_android-debug.apk`
+  из релиза (или `app-debug.apk` из артефакта CI) и установить, разрешив
+  установку из неизвестных источников. На Android TV — тот же APK
+  (есть D-pad и `LEANBACK_LAUNCHER`).
 
 ## План
 

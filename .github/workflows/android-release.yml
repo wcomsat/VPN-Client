@@ -1,0 +1,65 @@
+name: release-android
+
+# Собирает APK и прикрепляет его к GitHub Release (тег v*).
+# Пока это debug-подпись; постоянный keystore — следующий шаг.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Тег релиза (например v1.0.11)"
+        required: true
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Android SDK
+        run: |
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          SDKM=$(find "$SDK/cmdline-tools" -type f -name sdkmanager | head -n 1)
+          if [ -z "$SDKM" ]; then
+            echo "sdkmanager не найден в $SDK" >&2
+            exit 1
+          fi
+          yes | "$SDKM" --licenses >/dev/null 2>&1 || true
+          "$SDKM" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Ядро туннеля (Xray + tun2socks)
+        run: |
+          chmod +x tools/fetch-core-android.sh
+          ./tools/fetch-core-android.sh
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Тесты и сборка APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew testDebugUnitTest assembleDebug --no-daemon
+
+      - name: Публикация APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ inputs.tag || github.ref_name }}"
+          VER="${TAG#v}"
+          OUT="VPN_${VER}_android-debug.apk"
+          cp android/app/build/outputs/apk/debug/app-debug.apk "$OUT"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --title "VPN $TAG" --notes "VPN $VER"
+          gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber "$OUT"
